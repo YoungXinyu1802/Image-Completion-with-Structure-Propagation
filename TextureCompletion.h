@@ -65,7 +65,7 @@ private:
     void show_patch(Point2i unknown,Point2i candidate);
     void show_mask();
 public:
-    TextureCompletion(StructurePropagation* p);
+    TextureCompletion(StructurePropagation * p, Mat img);
     /*
     divide the whole image into areas to synthesize the textures independently
     */

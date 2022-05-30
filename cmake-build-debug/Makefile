@@ -169,6 +169,33 @@ OpenCvUtility.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/OpenCvUtility.cpp.s
 .PHONY : OpenCvUtility.cpp.s
 
+Photometric.obj: Photometric.cpp.obj
+
+.PHONY : Photometric.obj
+
+# target to build an object file
+Photometric.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj
+.PHONY : Photometric.cpp.obj
+
+Photometric.i: Photometric.cpp.i
+
+.PHONY : Photometric.i
+
+# target to preprocess a source file
+Photometric.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/Photometric.cpp.i
+.PHONY : Photometric.cpp.i
+
+Photometric.s: Photometric.cpp.s
+
+.PHONY : Photometric.s
+
+# target to generate assembly for a file
+Photometric.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/Photometric.cpp.s
+.PHONY : Photometric.cpp.s
+
 Photometric_Correction.obj: Photometric_Correction.cpp.obj
 
 .PHONY : Photometric_Correction.obj
@@ -222,6 +249,33 @@ StructurePropagation.s: StructurePropagation.cpp.s
 StructurePropagation.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.s
 .PHONY : StructurePropagation.cpp.s
+
+TextureCompletion.obj: TextureCompletion.cpp.obj
+
+.PHONY : TextureCompletion.obj
+
+# target to build an object file
+TextureCompletion.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/TextureCompletion.cpp.obj
+.PHONY : TextureCompletion.cpp.obj
+
+TextureCompletion.i: TextureCompletion.cpp.i
+
+.PHONY : TextureCompletion.i
+
+# target to preprocess a source file
+TextureCompletion.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/TextureCompletion.cpp.i
+.PHONY : TextureCompletion.cpp.i
+
+TextureCompletion.s: TextureCompletion.cpp.s
+
+.PHONY : TextureCompletion.s
+
+# target to generate assembly for a file
+TextureCompletion.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/TextureCompletion.cpp.s
+.PHONY : TextureCompletion.cpp.s
 
 main.obj: main.cpp.obj
 
@@ -289,12 +343,18 @@ help:
 	@echo ... OpenCvUtility.obj
 	@echo ... OpenCvUtility.i
 	@echo ... OpenCvUtility.s
+	@echo ... Photometric.obj
+	@echo ... Photometric.i
+	@echo ... Photometric.s
 	@echo ... Photometric_Correction.obj
 	@echo ... Photometric_Correction.i
 	@echo ... Photometric_Correction.s
 	@echo ... StructurePropagation.obj
 	@echo ... StructurePropagation.i
 	@echo ... StructurePropagation.s
+	@echo ... TextureCompletion.obj
+	@echo ... TextureCompletion.i
+	@echo ... TextureCompletion.s
 	@echo ... main.obj
 	@echo ... main.i
 	@echo ... main.s

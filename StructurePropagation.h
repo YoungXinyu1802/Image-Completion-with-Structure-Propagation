@@ -1,5 +1,8 @@
 //#include"Image.h"
+#ifndef STRUCTUREPROPAGATION_H
+#define STRUCTUREPROPAGATION_H
 #include"AnchorPoint.h"
+//#include "Photometric.h"
 #include"Photometric_Correction.h"
 #include<opencv2\opencv.hpp>
 #include<vector>
@@ -14,10 +17,6 @@ private:
     int line_or_curve;
     float ks;
     float ki;
-
-    Mat mask;
-    Mat img;
-    vector<vector<Point>> pointlist;
 
     string path = "test_data/result/";
     /*
@@ -59,6 +58,9 @@ private:
 
 public:
 //    Image image;
+    Mat mask;
+    Mat img;
+    vector<vector<Point>> pointlist;
     vector<vector<AnchorPoint>> unknown_anchors;
     vector<vector<AnchorPoint>> sample_anchors;
     Photometric_Correction *pc;
@@ -79,3 +81,4 @@ public:
     Point2i getLeftTopPoint(Point2i p);
     Rect getRect(Point2i p);
 };
+#endif

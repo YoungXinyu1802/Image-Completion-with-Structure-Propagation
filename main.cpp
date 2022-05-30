@@ -4,12 +4,12 @@
 #include "StructurePropagation.h"
 #include "OpenCvUtility.h"
 
-//#include "TextureCompletion.h"
+#include "TextureCompletion.h"
 
 using namespace std;
 using namespace cv;
 
-#define NUM_OF_IMAGES 2
+#define NUM_OF_IMAGES 7
 #define USER_DRAW_MASK 0
 #define PRE_MADE_MASK 1
 #define LINE_STRUCTURE 0
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
  */
 void get_input_image()
 {
-    img = imread("test_data/test" + to_string(img_current) + ".jpg", 1);
+    img = imread("test_data/img" + to_string(img_current) + ".png", 1);
     imshow("img", img);
     char k = waitKey(0);
     cout << "choose images" << endl;
@@ -81,7 +81,7 @@ void get_input_image()
         {
             img_current = (img_current + 1) % NUM_OF_IMAGES;
         }
-        img = imread("test_data/test" + to_string(img_current) + ".jpg", 1);
+        img = imread("test_data/img" + to_string(img_current) + ".png", 1);
         imshow("img", img);
         k = waitKey(0);
     }
@@ -205,7 +205,7 @@ void show_interface()
     f.open("point_list/plist" + to_string(img_current) + ".txt", ios::out); // clear old data
     f.close();
 
-    namedWindow("run");
+    namedWindow("run", 0);
     createTrackbar("Block Size", "run", &block_size, 50);
     createTrackbar("Sample Step", "run", &sample_step, 20);
     createTrackbar("Line or Curve", "run", &line_or_curve, 1);
@@ -245,12 +245,16 @@ void show_interface()
 
             // run structure propagation
             SP.SetParam(block_size, sample_step, line_or_curve, ks, ki);
+            cout << plist.size() << endl;
             SP.Run(mask_inv, img_masked, mask_structure_tmp, plist, sp_result);
 
             mask_structure_tmp.copyTo(mask_structure, mask_structure_tmp);
             draw_structure = sp_result.clone();
             imshow("run", draw_structure);
-
+            TextureCompletion tp(&SP, sp_result);
+//            texture(img, sp_result, mask, ts_result, mask_structure, "point_list/plist" + to_string(img_current) + ".txt");
+//            tp.synthesize_texture();
+            img_masked = sp_result;
             plist.clear();
             mousepoints.clear();
         }
@@ -284,11 +288,13 @@ void show_interface()
             imshow("run", draw_structure);
         }
             // texture synthesis
-        else if (k == 't')
-        {
-//            texture(img, sp_result, mask, ts_result, mask_structure, "point_list/plist" + to_string(img_current) + ".txt");
-            imshow("run", ts_result);
-        }
+//        else if (k == 't')
+//        {
+//            TextureCompletion tp(&sp, result);
+////            texture(img, sp_result, mask, ts_result, mask_structure, "point_list/plist" + to_string(img_current) + ".txt");
+//            tp.synthesize_texture();
+//            imshow("run", ts_result);
+//        }
 
         k = waitKey(0);
     }
@@ -350,3 +356,48 @@ static void callback_draw_structure(int event, int x, int y, int flags, void* pa
         }
     }
 }
+
+//void texture(Mat origin, Mat img, Mat mask, Mat &finalResult2, Mat Linemask, string listpath)
+//{
+//    //四个输入：mask，line，
+//    int m, n;
+//    //读入原图
+////	Mat3b origin = imread("../Texture/origin/img4.png");
+////	Mat3b img = imread("../Texture/sp_result/sp4.png");//5,1
+//
+//    //读入二值化的mask图像
+////	Mat1b mask = Mat::zeros(img.rows, img.cols, CV_8UC1);
+////	mask = imread("../Texture/mask/mask4.bmp", 0);
+//
+//    threshold(mask, mask, 125, 255, CV_THRESH_BINARY_INV);
+//    /*imshow("img", img);
+//    waitKey(10);
+//    imshow("mask", mask);
+//    waitKey(10);*/
+//    //生成带有mask但是没有进行补全的图
+//    Mat3b result;
+//    result.zeros(img.size());
+//    img.copyTo(result, mask);
+//    /*imshow("result", result);
+//    waitKey(10);*/
+//    //读入linemask
+////	Mat1b Linemask = Mat::zeros(img.rows, img.cols, CV_8UC1);
+////	Linemask = imread("../Texture/line/mask_s4.bmp", 0);
+//
+//
+//    /*imshow("line", Linemask);
+//    waitKey(10);*/
+//    //最终结果变量
+////	Mat3b finalResult2(img.size());
+//    img.copyTo(finalResult2);
+////	Mat3b finalResult1(img.size());
+////	img.copyTo(finalResult1);
+//    /*imshow("final", finalResult1);]
+//    waitKey(10);*/
+//    Mat1b map = getContous(listpath, Linemask);
+//    //TextureCompletion1(mask, Linemask, result, finalResult1);
+//    //TextureCompletion2(mask, Linemask, result, finalResult2);
+//    TextureCompletion3(origin, map, mask, Linemask, result, finalResult2);
+////    imshow("final", finalResult2);
+////    waitKey(0);
+//}

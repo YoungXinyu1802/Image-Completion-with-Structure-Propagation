@@ -6,10 +6,10 @@
 
 float **level_map;		//to determine the set of candidate positions
 
-TextureCompletion::TextureCompletion(StructurePropagation * p)
+TextureCompletion::TextureCompletion(StructurePropagation * p, Mat img)
 {
     sp = p;
-    srcImg = p->image.image_inpainted.clone();
+    srcImg = img.clone();
     mask = p->mask.clone();
     resImg = srcImg.clone();
     region = resImg.clone();
@@ -219,7 +219,7 @@ void TextureCompletion::cal_level_map(int area_index)
 
 void TextureCompletion::extend_curve()
 {
-    vector<vector<Point2i>>& curves = sp->image.curve_points_copy;
+    vector<vector<Point2i>>& curves = sp->pointlist;
     Mat curve = srcImg.clone();
     int curve_num = curves.size();
     for (int i = 0; i < curve_num; i++) {
@@ -286,7 +286,7 @@ void TextureCompletion::partition()
         //partition the area by the user specified curves
     else {
         //mark the curves to belong to area -1
-        vector<vector<Point2i>>& curves = sp->image.curve_points_copy;
+        vector<vector<Point2i>>& curves = sp->pointlist;
         int curve_num = curves.size();
         for (int i = 0; i < curve_num; i++) {
             int curve_i_num = curves[i].size();
