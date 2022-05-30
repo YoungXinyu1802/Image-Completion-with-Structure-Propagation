@@ -9,7 +9,7 @@
 using namespace std;
 using namespace cv;
 
-#define NUM_OF_IMAGES 7
+#define NUM_OF_IMAGES 2
 #define USER_DRAW_MASK 0
 #define PRE_MADE_MASK 1
 #define LINE_STRUCTURE 0
@@ -36,7 +36,7 @@ vector<vector<Point>> plist;
 vector<vector<Point>> mousepoints;
 StructurePropagation SP;
 int brush_size;
-int img_current = 2;
+int img_current = 1;
 int block_size = 20;
 int sample_step = 10;
 int line_or_curve = LINE_STRUCTURE;
@@ -81,7 +81,7 @@ void get_input_image()
         {
             img_current = (img_current + 1) % NUM_OF_IMAGES;
         }
-        img = imread("img" + to_string(img_current) + ".png", 1);
+        img = imread("test_data/test" + to_string(img_current) + ".jpg", 1);
         imshow("img", img);
         k = waitKey(0);
     }
@@ -247,9 +247,9 @@ void show_interface()
             SP.SetParam(block_size, sample_step, line_or_curve, ks, ki);
             SP.Run(mask_inv, img_masked, mask_structure_tmp, plist, sp_result);
 
-//            mask_structure_tmp.copyTo(mask_structure, mask_structure_tmp);
-//            draw_structure = sp_result.clone();
-//            imshow("run", draw_structure);
+            mask_structure_tmp.copyTo(mask_structure, mask_structure_tmp);
+            draw_structure = sp_result.clone();
+            imshow("run", draw_structure);
 
             plist.clear();
             mousepoints.clear();

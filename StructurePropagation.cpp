@@ -506,13 +506,13 @@ void StructurePropagation::Run(const Mat &mask, const Mat& img, Mat &mask_struct
                 getOneNewCurve(unknown_anchors[i], sample_anchors[i], i, false, result);//BP
         }
     }
-    imshow("Get one curve", result);
+//    imshow("Get one curve", result);
 //    if(ifshowsrcImg)
 //        imshow("srcImg", image.srcImage);
 //    if (ifsaveinpainted) {
 //        imwrite(path + "inpainted.png", this->image.image_inpainted);
 //    }
-    waitKey();
+//    waitKey();
 
 }
 
@@ -754,9 +754,8 @@ void StructurePropagation::copyPatchToImg(AnchorPoint unknown, Mat &patch, Mat &
     Rect rec = getRect(unknown, curve_index);
     //need to be correct ,to be done
     Mat correct_patch = patch.clone();
-    patch.copyTo(img(rec));
-//    Mat blend=pc->correct(correct_patch, mask, img,rec);
-//    blend.copyTo(img(rec));
+    Mat blend=pc->correct(correct_patch, mask, img,rec);
+    blend.copyTo(img(rec));
 }
 
 Point2i StructurePropagation::getLeftTopPoint(int point_index, int curve_index) {

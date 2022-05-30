@@ -92,6 +92,7 @@ Mat  Photometric_Correction::correct(Mat &patch, Mat &imgmask, Mat &resImg, Rect
     //imshow("blend", blend);
     //imshow("res", resImg);
     //waitKey();
-    updateMask(rec);
+//    updateMask(rec);
+    imgmask(rec).setTo(255);
     return blend;
 }
