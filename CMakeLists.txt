@@ -13,7 +13,7 @@ add_executable(ImageCompletion
                 StructurePropagation.cpp StructurePropagation.h
                 OpenCvUtility.cpp OpenCvUtility.h
                 math_function.cpp math_function.h
-#                Photometric_Correction.cpp Photometric_Correction.h
+                Photometric_Correction.cpp Photometric_Correction.h
 #                TextureCompletion.cpp TextureCompletion.h
                 AnchorPoint.h)
 

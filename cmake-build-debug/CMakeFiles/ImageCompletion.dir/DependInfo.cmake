@@ -5,6 +5,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/OpenCvUtility.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/OpenCvUtility.cpp.obj"
+  "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj"
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj"
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/main.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/main.cpp.obj"
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/math_function.cpp.obj"

@@ -169,6 +169,33 @@ OpenCvUtility.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/OpenCvUtility.cpp.s
 .PHONY : OpenCvUtility.cpp.s
 
+Photometric_Correction.obj: Photometric_Correction.cpp.obj
+
+.PHONY : Photometric_Correction.obj
+
+# target to build an object file
+Photometric_Correction.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj
+.PHONY : Photometric_Correction.cpp.obj
+
+Photometric_Correction.i: Photometric_Correction.cpp.i
+
+.PHONY : Photometric_Correction.i
+
+# target to preprocess a source file
+Photometric_Correction.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.i
+.PHONY : Photometric_Correction.cpp.i
+
+Photometric_Correction.s: Photometric_Correction.cpp.s
+
+.PHONY : Photometric_Correction.s
+
+# target to generate assembly for a file
+Photometric_Correction.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.s
+.PHONY : Photometric_Correction.cpp.s
+
 StructurePropagation.obj: StructurePropagation.cpp.obj
 
 .PHONY : StructurePropagation.obj
@@ -262,6 +289,9 @@ help:
 	@echo ... OpenCvUtility.obj
 	@echo ... OpenCvUtility.i
 	@echo ... OpenCvUtility.s
+	@echo ... Photometric_Correction.obj
+	@echo ... Photometric_Correction.i
+	@echo ... Photometric_Correction.s
 	@echo ... StructurePropagation.obj
 	@echo ... StructurePropagation.i
 	@echo ... StructurePropagation.s

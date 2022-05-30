@@ -1,6 +1,6 @@
 //#include"Image.h"
 #include"AnchorPoint.h"
-//#include"Photometric_Correction.h"
+#include"Photometric_Correction.h"
 #include<opencv2\opencv.hpp>
 #include<vector>
 using namespace cv;
@@ -61,7 +61,7 @@ public:
 //    Image image;
     vector<vector<AnchorPoint>> unknown_anchors;
     vector<vector<AnchorPoint>> sample_anchors;
-//    Photometric_Correction *pc;
+    Photometric_Correction *pc;
     StructurePropagation() = default;
 //    StructurePropagation(Mat src) { image = *(new Image(src));  }
     void SetParam(int block_size, int sample_step, int line_or_curve, double ks, double ki);

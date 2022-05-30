@@ -36,7 +36,7 @@ vector<vector<Point>> plist;
 vector<vector<Point>> mousepoints;
 StructurePropagation SP;
 int brush_size;
-int img_current = 1;
+int img_current = 2;
 int block_size = 20;
 int sample_step = 10;
 int line_or_curve = LINE_STRUCTURE;
@@ -247,9 +247,9 @@ void show_interface()
             SP.SetParam(block_size, sample_step, line_or_curve, ks, ki);
             SP.Run(mask_inv, img_masked, mask_structure_tmp, plist, sp_result);
 
-            mask_structure_tmp.copyTo(mask_structure, mask_structure_tmp);
-            draw_structure = sp_result.clone();
-            imshow("run", draw_structure);
+//            mask_structure_tmp.copyTo(mask_structure, mask_structure_tmp);
+//            draw_structure = sp_result.clone();
+//            imshow("run", draw_structure);
 
             plist.clear();
             mousepoints.clear();

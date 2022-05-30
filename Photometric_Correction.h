@@ -17,5 +17,5 @@ public:
     Photometric_Correction(Mat &mask);
     void updateMask(Rect rec);
     bool inMask(Point2i p);
-    Mat correct(Mat &patch, Mat &resImg,Rect &rec);
+    Mat correct(Mat &patch, Mat &imgmask, Mat &resImg,Rect &rec);
 };

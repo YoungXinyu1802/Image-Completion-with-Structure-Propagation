@@ -440,6 +440,7 @@ void StructurePropagation::getOneNewCurve(vector<AnchorPoint>&unknown, vector<An
         throw exception();
     }
     for (int i = 0; i < unknown.size(); i++) {
+        cout << "patch: " << i << endl;
         Mat patch = getOnePatch(sample[label[i]], img, curve_index);
         copyPatchToImg(unknown[i], patch, result, curve_index);
     }
@@ -469,7 +470,7 @@ void StructurePropagation::drawAnchors() {
         }
     }
     imshow("show anchors", showAnchors);
-    waitKey();
+    waitKey(0);
 }
 
 void StructurePropagation::Run(const Mat &mask, const Mat& img, Mat &mask_structure, vector<vector<Point>> &plist, Mat& result) {
@@ -753,7 +754,8 @@ void StructurePropagation::copyPatchToImg(AnchorPoint unknown, Mat &patch, Mat &
     Rect rec = getRect(unknown, curve_index);
     //need to be correct ,to be done
     Mat correct_patch = patch.clone();
-//    Mat blend=pc->correct(correct_patch, img,rec);
+    patch.copyTo(img(rec));
+//    Mat blend=pc->correct(correct_patch, mask, img,rec);
 //    blend.copyTo(img(rec));
 }
 

@@ -19,13 +19,13 @@ bool Photometric_Correction::inMask(Point2i p)
     return mask.at<uchar>(p.y, p.x) == 0;
 }
 
-Mat  Photometric_Correction::correct(Mat &patch, Mat &resImg, Rect &rec)
+Mat  Photometric_Correction::correct(Mat &patch, Mat &imgmask, Mat &resImg, Rect &rec)
 {
     Point2i left_top = Point2i(rec.x, rec.y);
     Point2i right_down = left_top + Point2i(rec.width, rec.height);
     Mat dst = resImg(rec).clone();
     Mat src = patch.clone();
-    Mat _mask = mask(rec).clone();
+    Mat _mask = imgmask(rec).clone();
 
     for (int row = 0; row < _mask.rows; row++) {
         for (int col = 0; col < _mask.cols; col++) {
