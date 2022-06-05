@@ -1,828 +1,927 @@
-#include"TextureCompletion.h"
-#include"debug.h"
-#include"math_function.h"
-#include<limits>
-#include<ctime>
+#include "TextureCompletion.h"
 
-float **level_map;		//to determine the set of candidate positions
-
-TextureCompletion::TextureCompletion(StructurePropagation * p, Mat img)
+void mergeImg(Mat & dst, Mat &src1, Mat &src2)
 {
-    sp = p;
-    srcImg = img.clone();
-    mask = p->mask.clone();
-    resImg = srcImg.clone();
-    region = resImg.clone();
-    to_show = resImg.clone();
-    int curve_size = p->unknown_anchors.size();
-    for (int curve_index = 0; curve_index < curve_size; curve_index++) {
-        for (int anchor_index = 0; anchor_index < p->unknown_anchors[curve_index].size(); anchor_index++) {
-            int  point_index = p->unknown_anchors[curve_index][anchor_index].anchor_point;
-            Point2i left_top = p->getLeftTopPoint(point_index, curve_index);
-            Point2i right_down = left_top + Point2i(PatchSizeCol, PatchSizeRow);
-            Mat tmp = mask(Rect(left_top, right_down));
-            tmp.setTo(255);
-        }
-    }
-    //calculate the boundary of the mask area
-    mask_bottom = 0;
-    mask_top = mask.rows;
-    mask_left = mask.cols;
-    mask_right = 0;
-    for (int row_index = 0; row_index < mask.rows; row_index++) {
-        for (int col_index = 0; col_index < mask.cols; col_index++) {
-            if (inMask(Point2i(col_index, row_index))) {
-                mask_bottom = row_index > mask_bottom ? row_index : mask_bottom;
-                mask_top = row_index < mask_top ? row_index : mask_top;
-                mask_left = col_index < mask_left ? col_index : mask_left;
-                mask_right = col_index > mask_right ? col_index : mask_right;
-            }
-
-        }
-    }
-    if (ifsavemask_t) {
-        imwrite(path + "t_mask.png", mask);
-    }
+    int rows = src1.rows;
+    int cols = src1.cols + 5 + src2.cols;
+    CV_Assert(src1.type() == src2.type());
+    dst.create(rows, cols, src1.type());
+    src1.copyTo(dst(Rect(0, 0, src1.cols, src1.rows)));
+    src2.copyTo(dst(Rect(src1.cols + 5, 0, src2.cols, src2.rows)));
 }
 
-void TextureCompletion::update_confidence_map(int area_index, vector<Point2i>&points)
+int sqr(int x)
 {
-    int rows = mask.rows;
-    int cols = mask.cols;
-    int num_points = points.size();
-    for (int point_index = 0; point_index < num_points; point_index++) {
-        int row_index = points[point_index].y;
-        int col_index = points[point_index].x;
-        if (!inMask(points[point_index])) {
-            confidence_map[row_index][col_index] = 1;
-        }
-        else {
-            int distance = Gaussian_kernel_size / 2;
-            confidence_map[row_index][col_index] = 0;	//initialize it to be 0
-            for (int row = row_index - distance; row < row_index + distance; row++) {
-                if (row<0 || row>rows - 1) continue;
-                for (int col = col_index - distance; col < col_index + distance; col++) {
-                    if (col<0 || col>cols - 1) continue;
-                    int tmp = mask.at<uchar>(row, col) == 255;
-                    confidence_map[row_index][col_index] += Gaussian_kernel[row - row_index + distance][col - col_index + distance] * tmp;
-                }
-            }
-        }
-    }
-    if (ifshowConfidencemap) {
-        cout << endl;
-        double sum = 0;
-        for (int i = 0; i < mask.rows; i++) {
-            for (int j = 0; j < mask.cols; j++) {
-                cout << confidence_map[i][j] << "  ";
-                sum += confidence_map[i][j];
-            }
-            cout << endl;
-        }
-        cout << "average: " << sum / mask.rows / mask.cols << endl;
-    }
+    return x * x;
 }
 
-void TextureCompletion::init_confidence_map()
+int dist(Vec3b V1, Vec3b V2)
 {
-    int rows = mask.rows;
-    int cols = mask.cols;
-    confidence_map = new float*[rows];
-    level_map = new float*[rows];
-    for (int i = 0; i < rows; i++) {
-        confidence_map[i] = new float[cols];
-        level_map[i] = new float[cols];
-    }
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            if (mask.at<uchar>(i, j) == 255) {
-                confidence_map[i][j] = 1;
-            }
-            else {
-                int distance = Gaussian_kernel_size / 2;
-                confidence_map[i][j] = 0;	//initialize it to be 0
-                for (int row = i - distance; row < i + distance; row++) {
-                    if (row<0 || row>rows - 1) continue;
-                    for (int col = j - distance; col < j + distance; col++) {
-                        if (col<0 || col>cols - 1) continue;
-                        int tmp = mask.at<uchar>(row, col) == 255;
-                        confidence_map[i][j] += Gaussian_kernel[row - i + distance][col - j + distance] * tmp;
-                    }
-                }
-            }
-        }
-    }
-    if (ifshowConfidencemap) {
-        cout <<"confidence_map:" <<endl;
-        double sum = 0;
-        for (int i = 0; i < mask.rows; i++) {
-            for (int j = 0; j < mask.cols; j++) {
-                cout << confidence_map[i][j] << "  ";
-                sum += confidence_map[i][j];
-            }
-            cout << endl;
-        }
-        cout << "average: " << sum / mask.rows / mask.cols << endl;
-    }
-    cal_level_map(0);
+    return sqr(int(V1[0]) - int(V2[0])) + sqr(int(V1[1]) - int(V2[1])) + sqr(int(V1[2]) - int(V2[2]));
+    /*double pr = (V1[0] + V2[0]) * 0.5;
+    return sqr(V1[0] - V2[0]) * (2 + (255 - pr) / 256)
+    + sqr(V1[1] - V2[1]) * 4
+    + sqr(V1[2] - V2[2]) * (2 + pr / 256);*/
 }
 
-void TextureCompletion::init_gaussian_kernel(int size)
+//全黑色是0，全白色是255
+// mask: 二值化的mask图像
+// Linemask：暂时理解为结构线
+// mat：是之前带有mask的没有进行纹理补全的结果
+// result：最后输出的结果
+void TextureCompletion2(Mat1b _mask, Mat1b LineMask, const Mat &mat, Mat &result)
 {
-    int center = size / 2;		//size=3,5,7,9......
-    Gaussian_kernel = new float*[size];
-    for (int i = 0; i < size; i++) {
-        Gaussian_kernel[i] = new float[size];
-    }
-    double sum = 0;
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            Gaussian_kernel[i][j] = gaussion_x_y(i, j, center, center);
-            sum += Gaussian_kernel[i][j];
+    int N = _mask.rows;
+    int M = _mask.cols;
+    int* test_mask;
+    int knowncount = 0;
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            knowncount += (_mask.at<uchar>(i, j) == 255);
+            //统计输入mask中纯白色像素点的个数
         }
+    //做了一种优化处理，判断是黑色点多还是白色点多，从而进行后面的操作
+    // mask部分是0白色？？
+    if (knowncount * 2< N * M)
+    {
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < M; j++)
+                _mask.at<uchar>(i, j) = 255 - _mask.at<uchar>(i, j);
     }
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            Gaussian_kernel[i][j] /= sum;
-        }
-    }
-}
 
-float TextureCompletion::gaussion_x_y(float x, float y, float x0, float y0, float sigma)
-{
-    return (1 / (2 * PI*sigma*sigma))*exp(-((x - x0)*(x - x0) + (y - y0)*(y - y0)) / (2 * sigma*sigma));
-}
+    //新建一个my_mask和sum_diff
+    vector<vector<int> >my_mask(N, vector<int>(M, 0)), sum_diff(N, vector<int>(M, 0));
 
-float TextureCompletion::gaussion_x(float x, float sigma)
-{
-    return exp(-x*x  / (2 * sigma*sigma)) / (sigma*sqrt(2 * PI));
-}
+    //Linemask扩大这后面白色的255*100变成灰色，黑色依旧是0
+    /*for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+            LineMask.at<uchar>(i, j) = LineMask.at<uchar>(i, j) * 100;*/
 
-void TextureCompletion::cal_level_map(int area_index)
-{
-    int rows = mask.rows;
-    int cols = mask.cols;
-    double sum = 0;
-    vector<float> tmp;
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            if (ifpartition) {
-                if (area[i][j] != area_index)
-                    continue;
-            }
-            sum += confidence_map[i][j];
-            tmp.push_back(confidence_map[i][j]);
-        }
-    }
-    double average = sum / tmp.size();
-    double sigma = 0;
-    for (int i = 0; i < tmp.size(); i++) {
-        sigma += (tmp[i] - average)*(tmp[i] - average);
-    }
-    sigma /= tmp.size();
-    sigma = sqrt(sigma);
+    //result = mat.clone();
 
-
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_real_distribution<> rand(0, sigma/4);//这里偏差大了，改小一些
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            if (ifpartition) {
-                if (area[i][j] != area_index)
-                    continue;
-            }
-            if (confidence_map[i][j] > average) {
-                level_map[i][j] = 0;
-            }
-            else {
-                float biais = rand(gen);
-                level_map[i][j] = confidence_map[i][j] + biais;
+    /*imshow("mask", _mask);
+    imshow("linemask", LineMask);*/
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            //mymask对应于mask（mask中的黑色遮挡部分mymask为0，mask白色部分mymask为1）
+            my_mask[i][j] = (_mask.at<uchar>(i, j) == 255);
+            //如果mymask中的一个位置坐标既是遮挡，又是LineMask中的灰色部分，则标注为2
+            if (my_mask[i][j] == 0 && LineMask.at<uchar>(i, j) > 0)
+            {
+                my_mask[i][j] = 2;
             }
         }
-    }
+    /*
+    my_mask的结构
+    1 1 1 1 1 1 1
+    1 1 1 1 1 1 1
+    1 0 0 0 0 0 1
+    1 0 0 0 2 0 1  ---结构线
+    1 0 2 2 2 0 1  ---结构线
+    1 0 0 0 0 0 1
+    1 1 1 1 1 1 1
+    */
 
-    if (ifshowlevelmap) {
-        cout << endl;
-        cout << "sigma=" << sigma << endl;
-        double sum = 0;
-        for (int i = 0; i < mask.rows; i++) {
-            for (int j = 0; j < mask.cols; j++) {
-                cout << level_map[i][j] << "  ";
-                sum += level_map[i][j];
-            }
-            cout << endl;
-        }
-        cout << "average: " << sum / mask.rows / mask.cols << endl;
-    }
-}
 
-void TextureCompletion::extend_curve()
-{
-    vector<vector<Point2i>>& curves = sp->pointlist;
-    Mat curve = srcImg.clone();
-    int curve_num = curves.size();
-    for (int i = 0; i < curve_num; i++) {
-        if (curves[i].size() > 4) {
-            Point2i first_point = curves[i][0];
-            Point2i second_point = curves[i][1];
-            Point2i tmp1 = second_point - first_point;
-            while (inBoundary(first_point - tmp1)) {
-                first_point = first_point - tmp1;
-                if (area[first_point.y][first_point.x] == -1) {
-                    break;
-                }
-                area[first_point.y][first_point.x] = -1;
-            }
-            Point2i last_point = curves[i][curves[i].size() - 1];
-            Point2i se_last_point = curves[i][curves[i].size() - 2];
-            Point2i tmp2 = se_last_point - last_point;
-            while (inBoundary(last_point - tmp2)) {
-                last_point = last_point - tmp2;
-                if (area[last_point.y][last_point.x] == -1) {
-                    break;
-                }
-                area[last_point.y][last_point.x] = -1;
-                //	curve.at<Vec3b>(last_point.y, last_point.x) == Vec3b(0, 255, 0);
-                //	curve.at<Vec3b>(last_point.y, last_point.x-1) == Vec3b(0, 255, 0);
-                //	curve.at<Vec3b>(last_point.y, last_point.x + 1) == Vec3b(0, 255, 0);
-                //	imshow("curve", curve);
-                //	waitKey();
-            }
-        }
-    }
-}
-
-bool TextureCompletion::inBoundary(Point2i p)
-{
-    if (p.x >= 0 && p.x <= mask.cols - 1 && p.y >= 0 && p.y <= mask.rows - 1) {
-        return true;
-    }
-    return false;
-}
-
-bool TextureCompletion::inMask(Point2i p)
-{
-    int col = p.x;
-    int row = p.y;
-    if (mask.at<uchar>(row, col) == 0) {
-        return true;
-    }
-    return false;
-}
-
-void TextureCompletion::partition()
-{
-    //init the area
-    area = new int*[mask.rows];
-    for (int i = 0; i < mask.rows; i++) {
-        area[i] = new int[mask.cols];
-        initArray(area[i], mask.cols);
-    }
-    //partition the area by the user
-    if (ifUserPartition) {
-
-    }
-        //partition the area by the user specified curves
-    else {
-        //mark the curves to belong to area -1
-        vector<vector<Point2i>>& curves = sp->pointlist;
-        int curve_num = curves.size();
-        for (int i = 0; i < curve_num; i++) {
-            int curve_i_num = curves[i].size();
-            for (int j = 0; j < curve_i_num; j++) {
-                area[curves[i][j].y][curves[i][j].x] = -1;
-            }
-        }
-        int curve_size = sp->unknown_anchors.size();
-        for (int curve_index = 0; curve_index < curve_size; curve_index++) {
-            for (int anchor_index = 0; anchor_index < sp->unknown_anchors[curve_index].size(); anchor_index++) {
-                int  point_index = sp->unknown_anchors[curve_index][anchor_index].anchor_point;
-                Point2i left_top = sp->getLeftTopPoint(point_index, curve_index);
-                Point2i right_down = left_top + Point2i(PatchSizeCol, PatchSizeRow);
-                for (int i = left_top.y; i < right_down.y; i++) {
-                    for (int j = left_top.x; j < right_down.x; j++) {
-                        area[i][j] = -1;
-                    }
-                }
-            }
-        }
-        //extend the curves to partition the area
-        extend_curve();
-        //show_partition();
-
-        vector<set<int>>diff_areas;
-        for (int row_index = 0; row_index < mask.rows; row_index++) {
-            for (int col_index = 0; col_index < mask.cols; col_index++) {
-                if (area[row_index][col_index] == -1) {
-                    continue;
-                }
-                if (area[row_index][col_index] == 0) {
-                    int up_area = row_index > 0 ? area[row_index - 1][col_index] : 0;
-                    int left_area = col_index > 0 ? area[row_index][col_index - 1] : 0;
-                    if (up_area <= 0 && left_area <= 0) {
-                        area_num++;
-                        area[row_index][col_index] = area_num;
-                    }
-                    else if (up_area <= 0 && left_area > 0) {
-                        area[row_index][col_index] = left_area;
-                    }
-                    else if (up_area > 0 && left_area <= 0) {
-                        area[row_index][col_index] = up_area;
-                    }
-                    else if (up_area == left_area && up_area > 0) {
-                        area[row_index][col_index] = up_area;
-                    }
-                    else if (up_area > 0 && left_area > 0 && up_area != left_area) {
-                        int i = 0;
-                        for (; i < diff_areas.size(); i++) {
-                            if (diff_areas[i].find(up_area) != diff_areas[i].end()) {
-                                diff_areas[i].insert(left_area);
-                                break;
-                            }
-                            else if (diff_areas[i].find(left_area) != diff_areas[i].end()) {
-                                diff_areas[i].insert(up_area);
-                                break;
-                            }
-                        }
-                        if (i == diff_areas.size()) {
-                            set<int>new_area;
-                            new_area.insert(up_area);
-                            new_area.insert(left_area);
-                            diff_areas.push_back(new_area);
-                        }
-                        area[row_index][col_index] = up_area;
-                    }
-
-                }
-            }
-        }
-        //show_partition();
-        int *final_area = new int[area_num + 1];
-        final_area[0] = 0;
-        for (int area_index = 1; area_index <= area_num; area_index++) {
-            //init the area_array to be the corresponding area index
-            final_area[area_index] = area_index;
-            //find the area index in all sets
-            for (int set_index = 0; set_index < diff_areas.size(); set_index++) {
-                if (diff_areas[set_index].find(area_index) != diff_areas[set_index].end()) {
-                    set<int>::iterator it;
-                    //find the smallest value in the set
-                    for (it = diff_areas[set_index].begin(); it != diff_areas[set_index].end(); it++) {
-                        if ((int)final_area[area_index] > (int) *it) {
-                            final_area[area_index] = *it;
-                        }
-                    }
-                    break;
-                }
-            }
+    int bs = 3;
+    int step = 6 * bs;
+    auto usable(my_mask);	//自动生成了一个和mymask相同类型的变量
+    int to_fill = 0;	//mymask中未被填充的阴影遮挡的部分（非结构线）
+    int filled = 0;		//mymask中未被填充的阴影遮挡的部分（非结构线）
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            to_fill += (my_mask[i][j] == 0);
         }
 
-        for (int row_index = 0; row_index < mask.rows; row_index++) {
-            for (int col_index = 0; col_index < mask.cols; col_index++) {
-                if (area[row_index][col_index] == -1) {
-                    continue;
-                }
-                else {
-                    int area_index = area[row_index][col_index];
-                    area[row_index][col_index] = final_area[area_index];
-                }
-            }
-        }
-        //show_partition();
-        int count = 0;
-        for (int i = 1; i <= area_num; i++) {
-            if (final_area[i] > count) {
-                int last_index = final_area[i];
-                final_area[i] = ++count;
-                int j = i + 1;
-                while (j <= area_num) {
-                    if (final_area[j] == last_index) {
-                        final_area[j] = count;
-                    }
-                    j++;
-                }
-            }
-        }
-        this->area_num = count;
-        for (int row_index = 0; row_index < mask.rows; row_index++) {
-            for (int col_index = 0; col_index < mask.cols; col_index++) {
-                if (area[row_index][col_index] == -1) {
-                    continue;
-                }
-                else {
-                    int area_index = area[row_index][col_index];
-                    area[row_index][col_index] = final_area[area_index];
-                }
-            }
-        }
-        //show_partition();
-        //cout << endl;
-    }
-    ifpartition = true;
-    //statistic the number of each area
-    area_size = vector<int>(area_num + 1, 0);
-    area_unknown_size.assign(area_size.begin(), area_size.end());
-    for (int row_index = 0; row_index < mask.rows; row_index++) {
-        for (int col_index = 0; col_index < mask.cols; col_index++) {
-            int area_index = area[row_index][col_index];
-            if (area_index > 0) {
-                area_size[area_index]++;
-                if (inMask(Point2i(col_index, row_index))) {
-                    area_unknown_size[area_index]++;
-                }
-            }
 
-        }
-    }
-    //show_partition();
-}
-
-void TextureCompletion::show_partition()
-{
-    for (int i = 0; i < mask.rows; i++) {
-        cout << endl;
-        for (int j = 0; j < mask.cols; j++) {
-            cout << area[i][j] << " ";
-        }
-    }
-    cout << endl;
-}
-
-void TextureCompletion::show_partition_image()
-{
-    Mat partition(mask.size(), CV_8UC3);
-    int *R, *G, *B;
-    R = new int[area_num];
-    G = new int[area_num];
-    B = new int[area_num];
-    for (int i = 0; i < area_num; i++) {
-        R[i] = rand() % 255;
-        G[i] = rand() % 255;
-        B[i] = rand() % 255;
-    }
-    for (int i = 0; i < partition.rows; i++) {
-        for (int j = 0; j < partition.cols; j++) {
-            int index = area[i][j];
-            if (index == -1) {
-                partition.at<Vec3b>(i, j) = Vec3b(0, 0, 0);
-            }
-            else {
-                partition.at<Vec3b>(i, j) = Vec3b(B[index], G[index], R[index]);
-            }
-
-        }
-    }
-    imwrite(path + "partition.png", partition);
-    delete[] R, G, B;
-}
-
-void TextureCompletion::init_original_pixel_map()
-{
-    original_pixel_map = new Point2i*[mask.rows];
-    for (int i = 0; i < mask.rows; i++) {
-        original_pixel_map[i] = new Point2i[mask.cols];
-    }
-    for (int row = 0; row < mask.rows; row++) {
-        for (int col = 0; col < mask.cols; col++) {
-            ////固定分配
-            Point p(col, row);
-            if (inMask(p)) {
-                original_pixel_map[row][col] = Point2i(-1,-1);
-            }
-            else {
-                original_pixel_map[row][col] = p;
-            }
-            //下面是随机分配策略
-            //int x, y;
-            //do {
-            //	x = rand() % mask.cols;
-            //	y = rand() % mask.rows;
-            //} while (area[y][x] != area[row][col] || inMask(Point2i(x, y)));
-            //original_pixel_map[row][col] = Point2i(x, y);
-        }
-    }
-    if (ifshowOriginal_map) {
-        for (int row = 0; row < mask.rows; row++) {
-            cout << endl;
-            for (int col = 0; col < mask.cols; col++) {
-                cout << original_pixel_map[row][col];
-            }
-        }
-    }
-    cout << endl;
-}
-
-void TextureCompletion::show_patch(Point2i unknown,Point2i candidate)
-{
-    //int radius = 10;
-    //Point2i left_top = p - Point2i(radius, radius);
-    //Point2i right_down = left_top + Point2i(radius*2, radius*2);
-    //Rect rec(left_top, right_down);
-    Mat show = resImg.clone();
-    show.at<Vec3b>(unknown.y, unknown.x) = Vec3b(0, 255, 0);
-    show.at<Vec3b>(candidate.y, candidate.x) = Vec3b(0, 255, 0);
-
-    //show.at<Vec3b>(candidate.y-1, candidate.x-1) = Vec3b(0, 0, 255);
-    //show.at<Vec3b>(candidate.y, candidate.x - 1) = Vec3b(0, 0, 255);
-    //show.at<Vec3b>(candidate.y - 1, candidate.x) = Vec3b(0, 0, 255);
-    //show.at<Vec3b>(candidate.y + 1, candidate.x + 1) = Vec3b(0, 0, 255);
-    //show.at<Vec3b>(candidate.y  , candidate.x + 1) = Vec3b(0, 0, 255);
-    //show.at<Vec3b>(candidate.y + 1, candidate.x ) = Vec3b(0, 0, 255);
-    //show.at<Vec3b>(candidate.y + 1, candidate.x - 1) = Vec3b(0, 0, 255);
-    //show.at<Vec3b>(candidate.y - 1, candidate.x + 1) = Vec3b(0, 0, 255);
-
-    imshow("patch", show);
-    waitKey();
-}
-
-void TextureCompletion::show_mask()
-{
-    for (int i = 0; i < mask.rows; i++) {
-        for (int j = 0; j < mask.cols; j++) {
-            int  c = mask.at<uchar>(i, j);
-            cout << c << " " << " ";
-        }
-        cout << endl;
-    }
-}
-
-vector<Point2i> TextureCompletion::get_unknown_points(int area_index)
-{
-    //show_partition();
-    vector<Point2i>points;
-    for (int row_index = mask_top; row_index <= mask_bottom; row_index++) {
-        for (int col_index = mask_left; col_index <= mask_right; col_index++) {
-            if (area[row_index][col_index] != -1 && area[row_index][col_index] != area_index) {
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            //遍历全图，如果my_mask[i][j] == 1说明不需要填充则继续
+            if (my_mask[i][j] == 1)
                 continue;
-            }
-            if (inMask(Point2i(col_index, row_index))) {
-                if (area[row_index][col_index] == area_index) {
-                    points.push_back(Point2i(col_index, row_index));
-                }
-                else if (area[row_index][col_index] == -1) {
-                    if (area[row_index + 1][col_index] != -1) {
-                        area[row_index][col_index] = area[row_index + 1][col_index];
-                        points.push_back(Point2i(col_index, row_index));
-                    }
-                    else if (area[row_index - 1][col_index] != -1) {
-                        area[row_index][col_index] = area[row_index - 1][col_index];
-                        points.push_back(Point2i(col_index, row_index));
-                    }
-                    else if (area[row_index][col_index + 1] != -1) {
-                        area[row_index][col_index] = area[row_index][col_index + 1];
-                        points.push_back(Point2i(col_index, row_index));
-                    }
-                    else if (area[row_index][col_index - 1] != -1) {
-                        area[row_index][col_index] = area[row_index][col_index - 1];
-                        points.push_back(Point2i(col_index, row_index));
-                    }
-                }
-            }
+            //对于mymask中需要被填充的地方
+            //在一个step的矩形邻域内，需要把usable标记为2
+            //usable[k][l] == 2说明需要被填充
+            //（我的理解是在原来的mask周围扩大了需要补全纹理的范围，缩小了可用的纹理的范围）
+            int k0 = max(0, i - bs), k1 = min(N - 1, i + bs);
+            int l0 = max(0, j - bs), l1 = min(M - 1, j + bs);
+            for (int k = k0; k <= k1; k++)
+                for (int l = l0; l <= l1; l++)
+                    usable[k][l] = 2;
         }
-    }
-    return points;
-}
 
-bool TextureCompletion::fill_one_pixel(Point2i unknown_point, int area_index)
-{
-    vector<Point2i>neighbors;
-    vector<Point2i>candidates;
-    int size_neighbors = sizeof_neighborhood/2+1;
-    int i = 0;		//the times that find the candidate of the unknown point
-    Point2i best_candidate(-1, -1);
-    do {
-        i++;
-        size_neighbors = size_neighbors * 2 - 1;
-        candidates.clear();
-        neighbors.clear();
-        get_candidates(unknown_point, neighbors, candidates, area_index, size_neighbors);
-        best_candidate = get_best_candidate(unknown_point, candidates);
-        //cout << "find the unknown_point" << unknown_point << "for" << int_to_string(i) << "times" << endl;
-        if (i > 4)
-            return false;
-    } while (best_candidate == Point2i(-1, -1) || candidates.size() ==0);
 
-    //if (resImg.at<Vec3b>(best_candidate.y, best_candidate.x) == Vec3b(0, 0, 255)) {
-    //	cout << unknown_point << "fuck it" << best_candidate << endl;
-    //}
-    //copy the pixel
+    //按照usable中2的地方生成一个黑白图，其中白色是需要填充的地方值为2
+    //也就是说实际要填充的部分比正常的黑白图要大
+    Mat use = _mask.clone();
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+            if (usable[i][j] == 2)
+                use.at<uchar>(i, j) = 255;
+            else use.at<uchar>(i, j) = 0;
 
-    resImg.at<Vec3b>(unknown_point.y, unknown_point.x) = resImg.at<Vec3b>(best_candidate.y, best_candidate.x);
 
-    //show_patch(unknown_point,best_candidate);
-    //update the original_pixel_map and the mask
-    original_pixel_map[unknown_point.y][unknown_point.x] = best_candidate;
-    mask.at<uchar>(unknown_point.y, unknown_point.x) = 255;
-    //show_mask();
-    if (i > 1) {
-        if(i<3)
-            region.at<Vec3b>(unknown_point.y, unknown_point.x) = Vec3b(255, 0, 0);
-        else
-            region.at<Vec3b>(unknown_point.y, unknown_point.x) = Vec3b(255, 255, 67);
-    }
-    else{
-        region.at<Vec3b>(unknown_point.y, unknown_point.x) = Vec3b(0, 255, 0);
-    }
 
-    imshow("region", region);
-    imshow("to_show", resImg);
-    waitKey(1);
-    return true;
-}
-
-void TextureCompletion::get_candidates(Point2i unknown_point, vector<Point2i> &neighbors,vector<Point2i>&candidates,int area_index,int size)
-{
-    //L-shaped neighbors
-    int point_row = unknown_point.y;
-    int point_col = unknown_point.x;
-    int distance = size / 2;
-
-    for (int row_index = point_row- distance; row_index <= point_row + distance; row_index++) {
-        for (int col_index = point_col - distance; col_index <= point_col + distance; col_index++) {
-            if (row_index == point_row&&col_index==point_col) {
-                continue;
-            }
-            Point2i neighbor_point(col_index, row_index);
-            //the neighbor must be valid
-            if (inBoundary(neighbor_point) && !inMask(neighbor_point)) {
-                if (area[row_index][col_index] == area_index) {
-                    neighbors.push_back(neighbor_point);
-                    Point2i original_point = original_pixel_map[row_index][col_index];
-                    Point2i candidate(-1, -1);
-                    if (size != sizeof_neighborhood)
-                        candidate = original_point;
-                    else
-                        candidate = original_point + unknown_point - neighbor_point;
-                    //judge if the candidate is in the right area and in boundary
-                    if (inBoundary(candidate) && !inMask(candidate)) {
-                        if (area[candidate.y][candidate.x] == area_index) {
-                            if (find(candidates.begin(), candidates.end(), candidate) == candidates.end()) {
-                                candidates.push_back(candidate);
-                            }
-                        }
-                    }
+    int itertime = 0;
+    Mat match;
+    match = result.clone();
+    while (true)
+    {
+        itertime++;
+        int x, y, cnt = -1;
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < M; j++)
+            {
+                //略过不需要填充的地方以及轮廓线部分
+                if (my_mask[i][j] != 0) continue;
+                //此时my_mask[i][j]==0
+                //首先要找到需要填充的区域的边界点
+                //edge用于判断这个点是不是边界
+                bool edge = false;
+                int k0 = max(0, i - 1), k1 = min(N - 1, i + 1);
+                int l0 = max(0, j - 1), l1 = min(M - 1, j + 1);
+                //取到像素点的一个小邻域8个像素点，如果这个邻域内的点有一个是1则最后edge==true
+                /*
+                1 1 1
+                1 0 1
+                1 1 1
+                */
+                for (int k = k0; k <= k1; k++)
+                    for (int l = l0; l <= l1; l++)
+                        edge |= (my_mask[k][l] == 1);	//或等于 edge = edge | (my_mask==1);
+                if (!edge) continue;
+                //如果edge==true说明当前像素点是边界点
+                //------猜测后面需要对这个像素点进行融合运算！-------
+                k0 = max(0, i - bs), k1 = min(N - 1, i + bs);
+                l0 = max(0, j - bs), l1 = min(M - 1, j + bs);
+                int tmpcnt = 0;
+                //此时取到当前像素点周围的一个step大小的矩形邻域
+                //tmpcnt计算了这个矩形邻域内不需要填充的像素点的个数
+                for (int k = k0; k <= k1; k++)
+                    for (int l = l0; l <= l1; l++)
+                        tmpcnt += (my_mask[k][l] == 1);
+                if (tmpcnt > cnt)
+                {
+                    cnt = tmpcnt;
+                    x = i;
+                    y = j;
                 }
+                //结束for循环的时候xy记录了边界点
             }
+        //如果cnt==-1说明所有edge都是false，也就是说所有mymask[i，j]都是1都是不需要填充，跳出while
+        if (cnt == -1) break;
 
-        }
-    }
-}
+        bool debug = false;
+        bool debug2 = false;
 
-Point2i TextureCompletion::get_best_candidate(Point2i unknown_point,vector<Point2i>& candidates)
-{
-    float min_L2_difference = FLT_MAX;
-    Point2i best_candidate(-1, -1);
-    vector<Point2i>::iterator it;
-    int point_row = unknown_point.y;
-    int point_col = unknown_point.x;
 
-    for (it = candidates.begin(); it != candidates.end(); it++) {
-        int count = 0;
-        float ratio_sum = 0;
-        Point2i candidate_point = *it;
-        int distance = sizeof_neighborhood / 2;
-        float L2_difference = 0;
-        bool has_common_original = false;
-        int row_r = 0;
-        int col_r = 0;
-        bool is_equal = false;
-        for (int row_index =  - distance; row_index <= distance; row_index++) {
-            for (int col_index =  - distance; col_index <= distance; col_index++) {
-                if (row_index == 0 && col_index==0) {
-                    continue;
-                }
-                Point2i unknown_neighbor_point(col_index + unknown_point.x, row_index + unknown_point.y);
-                Point2i candidate_neighbor_point(col_index + candidate_point.x, row_index + candidate_point.y);
-                if (!inBoundary(unknown_neighbor_point) || !inBoundary(candidate_neighbor_point) || inMask(unknown_neighbor_point) || inMask(candidate_neighbor_point)) {
+        //这部分再次遍历全图；比较一个邻域内和整张图片其他邻域内是否有相似的块
+        int k0 = min(x, bs), k1 = min(N - 1 - x, bs);
+        int l0 = min(y, bs), l1 = min(M - 1 - y, bs);
+        //这里使用p0q0使得本身就在对应点的邻域寻找
+        int p0 = max(x - step, bs), p1 = max(N - 1 - x - step, bs);
+        int q0 = max(y - step, bs), q1 = max(M - 1 - y - step, bs);
+        int p2 = min(x + step, N);
+        int q2 = min(y + step, M);
+        int sx = 1000000;
+        int sy = 1000000;
+        int min_diff = 1000000;	//最大的int值
+        for (int j = q0; j + bs < M-q1; j += bs)
+            for (int i = p0; i + bs < N-p1; i += bs)
+            {
+
+                //printf("%d\n", tmp);
+                //通过usable找到最近的不需要填充的像素点
+                //如果==2说明这里没有纹理
+                //match.at<Vec3b>(i, j) = Vec3b(255, 0, 0);
+                if (my_mask[i][j] == 2) {
+
                     break;
                 }
-                //for debug
-                Point2i original_point = original_pixel_map[unknown_neighbor_point.y][unknown_neighbor_point.x];
-                if (original_point == candidate_neighbor_point) {
-                    has_common_original = true;
-                    row_r = row_index;
-                    col_r = col_index;
-                    if (resImg.at<Vec3b>(unknown_neighbor_point.y, unknown_neighbor_point.x) == resImg.at<Vec3b>(candidate_neighbor_point.y, candidate_neighbor_point.x)) {
-                        is_equal = true;
+                if (usable[i][j] == 2)	continue;
+
+                int tmp_diff = 0;
+                //取到xy和ij周围step的矩形邻域
+                for (int k = -k0; k <= k1; k++)
+                    for (int l = -l0; l <= l1; l++)
+                    {
+                        //printf("%d %d %d %d %d %d\n", i + k, j + l, x + k, y + l, N, M);
+                        //ij表示可以用来比较的不需要填充纹理的坐标点
+                        //xy表示当前需要被填充的点，由之前的for循环生成
+                        //[x + k][y + l]表示xy的step邻域内的某点
+                        //[i + k][j + l]表示ij的step邻域内的某点
+                        if (my_mask[x + k][y + l] != 0)
+                            tmp_diff += dist(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
+                        //tmp_diff计算了这两个对应点之间，RGB值的差异；显然需要全图搜索找到一个最小的tmpdiff，这说明这两块邻域最像
+
+
+
+                    }
+                //printf("tmp_diff = %d", tmp_diff);
+                sum_diff[i][j] = tmp_diff;
+                if (min_diff > tmp_diff)
+                {
+
+                    sx = i;
+                    sy = j;
+                    min_diff = tmp_diff;
+                }
+                sum_diff[i][j] = tmp_diff;
+
+                //结束循环的时候，得到的是对比xy有最小tmpdiff的点的坐标sx，sy
+
+            }
+        imshow("iii", match);
+        waitKey(10);
+
+        cout << "当前的点是xy：" << x << y << endl;
+        if (sx == 1000000 && sy == 1000000) {
+            //这种点实际上特别多！！！要保证可以获取到能用的texture！！
+            //这里已经是触发异常的点，进行全局搜索,
+            cout << "处罚异常xy" << endl;
+            match.at<Vec3b>(x, y) = Vec3b(0, 0, 255);
+            for (int j = M - step; j - bs > step; j -= bs)
+                for (int i = N - step; i - bs > step; i -= bs)
+
+                {
+                    int tmp_diff = 0;
+                    /*if (my_mask[i][j] == 2) {
+                        cout << i << " , " << j << endl;
+                        break;
+                    }*/
+                    if (usable[i][j] == 2)	continue;
+
+                    for (int k = -k0; k <= k1; k++)
+                        for (int l = -l0; l <= l1; l++)
+                            if (my_mask[x + k][y + l] != 0)
+                                tmp_diff += dist(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
+                    sum_diff[i][j] = tmp_diff;
+                    if (min_diff > tmp_diff)
+                    {
+
+                        sx = i;
+                        sy = j;
+                        min_diff = tmp_diff;
+                    }
+                    sum_diff[i][j] = tmp_diff;
+                }
+            if (usable[sx][sy] == -1) {
+
+                printf("------当前对应点是一个曾经被填充过的点-----");
+            }
+
+
+        }
+        if (sx == 1000000 && sy == 1000000) {
+            sx = x;
+            sy = y;
+            printf("【仍旧找不到】");
+        }
+
+        cout << "对应的点是xy：" << sx << sy << endl;
+
+
+        usable[x][y] = -1;
+        //用（sx，sy）周围的点的RGB值填充xy周围需要被填充的点
+        for (int k = -k0; k <= k1; k++)
+            for (int l = -l0; l <= l1; l++)
+                if (my_mask[x + k][y + l] == 0)
+                {
+                    result.at<Vec3b>(x + k, y + l) = result.at<Vec3b>(sx + k, sy + l);
+                    my_mask[x + k][y + l] = 1;
+                    //usable[x + k][y + l] = 1;
+                    filled++;
+                    if (debug)
+                    {
+                        result.at<Vec3b>(x + k, y + l) = Vec3b(255, 0, 0);
+                        result.at<Vec3b>(sx + k, sy + l) = Vec3b(0, 255, 0);
+                    }
+                    if (debug2)
+                    {
+                        match.at<Vec3b>(x + k, y + l) = Vec3b(255, 0, 0);
+                        match.at<Vec3b>(sx + k, sy + l) = Vec3b(0, 255, 0);
                     }
                 }
-                //the two corresponding points both exist
-                count++;
-
-                uchar u_R = srcImg.at<Vec3b>(unknown_neighbor_point.y, unknown_neighbor_point.x)[2];
-                uchar u_G = srcImg.at<Vec3b>(unknown_neighbor_point.y, unknown_neighbor_point.x)[1];
-                uchar u_B = srcImg.at<Vec3b>(unknown_neighbor_point.y, unknown_neighbor_point.x)[0];
-
-                uchar c_R = srcImg.at<Vec3b>(candidate_neighbor_point.y, candidate_neighbor_point.x)[2];
-                uchar c_G = srcImg.at<Vec3b>(candidate_neighbor_point.y, candidate_neighbor_point.x)[1];
-                uchar c_B = srcImg.at<Vec3b>(candidate_neighbor_point.y, candidate_neighbor_point.x)[0];
-                //normalized distance
-                float gaussian_d = sqrt((row_index*row_index + col_index * col_index) / (distance*distance));
-                float ratio = gaussion_x(gaussian_d);
-                ratio_sum += ratio;
-                L2_difference += sqrt((u_R - c_R)*(u_R - c_R) + (u_B - c_B)*(u_B - c_B) + (u_G - c_G)*(u_G - c_G))*ratio;
-            }
+                else
+                {
+                    if (debug)
+                    {
+                        printf("(%d,%d,%d) matches (%d,%d,%d)\n", result.at<Vec3b>(x + k, y + l)[0], result.at<Vec3b>(x + k, y + l)[1], result.at<Vec3b>(x + k, y + l)[2], result.at<Vec3b>(sx + k, sy + l)[0], result.at<Vec3b>(sx + k, sy + l)[1], result.at<Vec3b>(sx + k, sy + l)[2]);
+                    }
+                }
+        if (debug2)
+        {
+            imshow("match", match);
         }
-        //if (count < SIZEOFNEIGHBORHOOD*SIZEOFNEIGHBORHOOD/4) {
-        //	return Point2i(-1, -1);
-        //}
-
-        //error
-        if (L2_difference == 0 && candidates.size()!=0) {
-            //cout << "error: the two points have no neighbor in common   " << "unknown_point:" << unknown_point << " candidate_point:" << candidate_point << endl;
-            //cout << "unknown:" << inMask(unknown_point) << " candidate:" << inMask(candidate_point) << endl;
-            //cout << "unknown:" << resImg.at<Vec3b>(unknown_point.y, unknown_point.x) << "candidate:" << resImg.at<Vec3b>(candidate_point.y, candidate_point.x) << endl;
-            //show_patch(unknown_point, candidate_point);
-            //for (int row_index = -distance; row_index <= distance; row_index++) {
-            //	for (int col_index = -distance; col_index <= distance; col_index++) {
-            //		if (row_index == 0 && col_index == 0) {
-            //			continue;
-            //		}
-            //		Point2i unknown_neighbor_point(col_index + unknown_point.x, row_index + unknown_point.y);
-            //		Point2i candidate_neighbor_point(col_index + candidate_point.x, row_index + candidate_point.y);
-            //		if (inBoundary(unknown_neighbor_point) && inBoundary(candidate_neighbor_point)) {
-            //			Point2i original_point = original_pixel_map[unknown_neighbor_point.y][unknown_neighbor_point.x];
-            //			bool equal = original_point == candidate_neighbor_point;
-            //			cout <<unknown_neighbor_point<<inMask(unknown_neighbor_point)<< original_point << inMask(unknown_neighbor_point) << candidate_neighbor_point << inMask(candidate_neighbor_point)<<"is equal:"<<equal << endl;
-
-            //		}
-            //	}
-            //}
-            //cout << endl;
-        }
-        else {
-            //nomalized
-            L2_difference /= ratio_sum;
-            if (L2_difference < min_L2_difference) {
-                min_L2_difference = L2_difference;
-                best_candidate = candidate_point;
-            }
-        }
-    }
-
-    if (best_candidate == Point2i(-1, -1) ) {
-        cout << "Warnning: no best candidate" << endl;
-    }
-    return best_candidate;
-}
-
-void TextureCompletion::synthesize_area_texture(int area_index)
-{
-    int radio_size=area_unknown_size[area_index] * level_set_radio;
-    vector<Point2i>unknown_points = get_unknown_points(area_index);
-    while (unknown_points.size() > 0) {
-        //select one pixel to find its original pixel
-        bool filled_it = true;
-        int count = 0;
-        unknown_points = get_unknown_points(area_index);
-        //cout << "rest of unknown points:" << unknown_points.size()<< endl;
-        if (unknown_points.size() <= 0) {
-            break;
-        }
-        cal_level_map(area_index);
-        //the 0~candidate-1 th point in the unknown_points will be tht candidate to be fill
-        //int candidate_size = radio_size > unknown_points.size() ? unknown_points.size() : radio_size;
-        vector<l_point>temp;
-        for (int i = 0; i < unknown_points.size(); i++) {
-            l_point lp(unknown_points[i]);
-            temp.push_back(lp);
-        }
-        sort(temp.begin(), temp.end());
-        unknown_points.clear();
-        for (int i = 0; i < temp.size(); i++) {
-            Point2i point(temp[i].x, temp[i].y);
-            unknown_points.push_back(point);
-        }
-        int candidate_size = unknown_points.size();
-        //search the original pixel of the unknown points
-        for (int point_index = 0; point_index < candidate_size; point_index++) {
-            Point2i unknown_point = unknown_points[point_index];
-            //to judge if the pixel has been filled successfullly
-            filled_it=fill_one_pixel(unknown_point, area_index);
-            if(filled_it==false)
-                count++;
-        }
-        update_confidence_map(area_index, unknown_points);
-        if (count > 0) {
-            cout << "failed to fill " << int_to_string(count) << " points" << endl;
-        }
+        if (debug) return;
+        printf("done :%.2lf%%\n", 100.0 * filled / to_fill);
+        imwrite("final.png", result);
+        imshow("final", result);
+        waitKey(0);
     }
 }
 
-void TextureCompletion::synthesize_texture()
-{
-    init_gaussian_kernel(Gaussian_kernel_size);
-    init_confidence_map();
-    partition();				//partition the whole picture
-    show_partition_image();
-    init_original_pixel_map();	//init the original pixel map
+Mat1b getContous(string a, Mat1b linemask) {
+    //M是高度
+    //N是长度
+    int M, N;
+    int safe_distence = 18;		//距离结构线的安全距离
+    M = linemask.rows;
+    N = linemask.cols;
+    ifstream infile;
+    Mat1b myMap = Mat::zeros(cv::Size(N, M), CV_8UC1);
+    Mat1b contousMap = Mat::zeros(cv::Size(N, M), CV_8UC1);
+    infile.open(a.data());   //将文件流对象与文件连接起来
+    assert(infile.is_open());   //若失败,则输出错误消息,并终止程序运行
+    string s;
+    while (getline(infile, s))
+    {
+        //cout << s << endl;
+        std::string::size_type pos = s.find(" ");
+        std::string firstStr = s.substr(0, pos);
+        std::string laterStr = s.substr(pos + strlen(" "));
+        /*cout << firstStr << endl;
+        cout << laterStr << endl;*/
+        int p = atoi(firstStr.c_str());
+        int q = atoi(laterStr.c_str());
+        myMap[q][p] = 255;		//左上角是0，0;;前者是纵坐标，后者是横坐标
 
-    for (int area_index = 1; area_index <= area_num; area_index++) {
-        synthesize_area_texture(area_index);
-        imwrite(path+"syn_texture"+int_to_string(area_index)+".png", resImg);
     }
-    //resImg = natGenerate(resImg, mask, 3);
-    imshow("syn_texture", resImg);
-    imwrite(path+"syn_texture.png", resImg);
+    /*cout << M << "  " << N << endl;
+    cout << myMap[M][N] << endl;*/
+    int areaIndex = 1;
+    int flag = 0;	//判读是否是line
+    int threshold = 0;
+    for (int i = 15; i < N - 15; i++) {
+        for (int j = 15; j < M - 15; j++) {
+            if (myMap[j][i] == 0) {
+                threshold++;
+                if (threshold < safe_distence) {
+                    continue;
+                }
+                if (flag == 1) {
+                    areaIndex++;
+                }
+                flag = 0;
+                contousMap[j][i] = areaIndex;
+                //cout << contousMap[j][i]
+                /*myMap[j][i] = 255;
+                cout << areaIndex << endl;
+                imshow("window", myMap);
+                waitKey(10);*/
+            }
+            else {
+                for (int back = 1; back < safe_distence; back++) {
+                    //myMap[j-back][i] = 0;
+                    if (j-back > 0)
+                        contousMap[j-back][i] = 0;
+                }
+                flag = 1;
+                threshold = 0;
+            }
+        }
+        areaIndex = 1;
+    }
+
+    //cout << contousMap << endl;
+    infile.close();
+
+    return contousMap;
+}
+
+
+
+
+
+//全黑色是0，全白色是255
+// mask: 二值化的mask图像
+// Linemask：暂时理解为结构线
+// mat：是之前带有mask的没有进行纹理补全的结果
+// result：最后输出的结果
+void TextureCompletion3(Mat3b img, Mat1b map, Mat1b _mask, Mat1b LineMask, const Mat3b &mat, Mat &result)
+{
+    int N = _mask.rows;
+    int M = _mask.cols;
+    int* test_mask;
+    int knowncount = 0;
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            knowncount += (_mask.at<uchar>(i, j) == 255);
+            //统计输入mask中纯白色像素点的个数
+        }
+    //做了一种优化处理，判断是黑色点多还是白色点多，从而进行后面的操作
+    // mask部分是0白色？？
+    if (knowncount * 2< N * M)
+    {
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < M; j++)
+                _mask.at<uchar>(i, j) = 255 - _mask.at<uchar>(i, j);
+    }
+
+    //新建一个my_mask和sum_diff
+    vector<vector<int> >my_mask(N, vector<int>(M, 0)), sum_diff(N, vector<int>(M, 0));
+
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            //mymask对应于mask（mask中的黑色遮挡部分mymask为0，mask白色部分mymask为1）
+            my_mask[i][j] = (_mask.at<uchar>(i, j) == 255);
+            //如果mymask中的一个位置坐标既是遮挡，又是LineMask中的灰色部分，则标注为2
+            if (my_mask[i][j] == 0 && LineMask.at<uchar>(i, j) > 0)
+            {
+                my_mask[i][j] = 2;
+            }
+        }
+    /*
+    my_mask的结构
+    1 1 1 1 1 1 1
+    1 1 1 1 1 1 1
+    1 0 0 0 0 0 1
+    1 0 0 0 2 0 1  ---结构线
+    1 0 2 2 2 0 1  ---结构线
+    1 0 0 0 0 0 1
+    1 1 1 1 1 1 1
+    */
+
+
+    int bs = 5;
+    int step = 6;
+    auto usable(my_mask);	//自动生成了一个和mymask相同类型的变量
+    int to_fill = 0;	//mymask中未被填充的阴影遮挡的部分（非结构线）
+    int filled = 0;		//mymask中未被填充的阴影遮挡的部分（非结构线）
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            to_fill += (my_mask[i][j] == 0);
+        }
+
+
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            //遍历全图，如果my_mask[i][j] == 1说明不需要填充则继续
+            if (my_mask[i][j] == 1)
+                continue;
+            //对于mymask中需要被填充的地方
+            //在一个step的矩形邻域内，需要把usable标记为2
+            //usable[k][l] == 2说明需要被填充
+            //（我的理解是在原来的mask周围扩大了需要补全纹理的范围，缩小了可用的纹理的范围）
+            int k0 = max(0, i - bs), k1 = min(N - 1, i + bs);
+            int l0 = max(0, j - bs), l1 = min(M - 1, j + bs);
+            for (int k = k0; k <= k1; k++)
+                for (int l = l0; l <= l1; l++)
+                    usable[k][l] = 2;
+        }
+
+
+    //按照usable中2的地方生成一个黑白图，其中白色是需要填充的地方值为2
+    //也就是说实际要填充的部分比正常的黑白图要大
+    Mat use = _mask.clone();
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+            if (usable[i][j] == 2)
+                use.at<uchar>(i, j) = 255;
+            else use.at<uchar>(i, j) = 0;
+
+
+
+    int itertime = 0;
+    Mat match;
+    Mat output;
+    match = result.clone();
+    while (true)
+    {
+        itertime++;
+        int x, y, cnt = -1;
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < M; j++)
+            {
+                //略过不需要填充的地方以及轮廓线部分
+                if (my_mask[i][j] != 0) continue;
+                //此时my_mask[i][j]==0
+                //首先要找到需要填充的区域的边界点
+                //edge用于判断这个点是不是边界
+                bool edge = false;
+                int k0 = max(0, i - 1), k1 = min(N - 1, i + 1);
+                int l0 = max(0, j - 1), l1 = min(M - 1, j + 1);
+                //取到像素点的一个小邻域8个像素点，如果这个邻域内的点有一个是1则最后edge==true
+                /*
+                1 1 1
+                1 0 1
+                1 1 1
+                */
+                for (int k = k0; k <= k1; k++)
+                    for (int l = l0; l <= l1; l++)
+                        edge |= (my_mask[k][l] == 1);	//或等于 edge = edge | (my_mask==1);
+                if (!edge) continue;
+                //如果edge==true说明当前像素点是边界点
+                //------猜测后面需要对这个像素点进行融合运算！-------
+                k0 = max(0, i - bs), k1 = min(N - 1, i + bs);
+                l0 = max(0, j - bs), l1 = min(M - 1, j + bs);
+                int tmpcnt = 0;
+                //此时取到当前像素点周围的一个step大小的矩形邻域
+                //tmpcnt计算了这个矩形邻域内不需要填充的像素点的个数
+                for (int k = k0; k <= k1; k++)
+                    for (int l = l0; l <= l1; l++)
+                        tmpcnt += (my_mask[k][l] == 1);
+                if (tmpcnt > cnt)
+                {
+                    cnt = tmpcnt;
+                    x = i;
+                    y = j;
+                }
+                //结束for循环的时候xy记录了边界点
+            }
+        //如果cnt==-1说明所有edge都是false，也就是说所有mymask[i，j]都是1都是不需要填充，跳出while
+        if (cnt == -1) break;
+
+        bool debug = false;
+        bool debug2 = false;
+
+
+        //这部分再次遍历全图；比较一个邻域内和整张图片其他邻域内是否有相似的块
+        int k0 = min(x, bs), k1 = min(N - 1 - x, bs);
+        int l0 = min(y, bs), l1 = min(M - 1 - y, bs);
+        //这里使用p0q0使得本身就在对应点的邻域寻找
+        int p0 = max(x - step, bs), p1 = max(N - 1 - x - step, bs);
+        int q0 = max(y - step, bs), q1 = max(M - 1 - y - step, bs);
+        int p2 = min(x + step, N);
+        int q2 = min(y + step, M);
+        int sx = 1000000;
+        int sy = 1000000;
+        int min_diff = 1000000;	//最大的int值
+        for (int i = 50; i + 50 < N; i += step)
+            for (int j = 50; j + 50 < M; j += step)
+            {
+                //通过usable找到最近的不需要填充的像素点
+                //如果==2说明这里的纹理不可用
+                if (usable[i][j] == 2)continue;
+                //判断两者是否实在同一个area
+                //cout << "-属于的区域是: " << map[i][j] << endl;
+                if (map[i][j] != map[x][y]) continue;
+                int tmp_diff = 0;
+                //取到xy周围step的矩形邻域
+                for (int k = -k0; k <= k1; k++)
+                    for (int l = -l0; l <= l1; l++)
+                    {
+
+                        if (my_mask[x + k][y + l] != 0)
+                            tmp_diff += dist(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
+                    }
+                sum_diff[i][j] = tmp_diff;
+                if (min_diff > tmp_diff)
+                {
+                    sx = i;
+                    sy = j;
+                    min_diff = tmp_diff;
+                }
+                //结束循环的时候，得到的是对比xy有最小tmpdiff的点的坐标sx，sy
+            }
+//				cout << "对应的点是xy：" << sx << sy << endl;
+        if (sx == 1000000 && sy == 1000000) {
+            for (int i = step; i + step < N; i += step)
+                for (int j = step; j + step < M; j += step)
+                {
+                    //通过usable找到最近的不需要填充的像素点
+                    //如果==2说明这里的纹理不可用
+                    //if (usable[i][j] == 2)continue;
+                    if (map[i][j] != map[x][y]) continue;
+                    int tmp_diff = 0;
+                    //取到xy周围step的矩形邻域
+                    for (int k = -k0; k <= k1; k++)
+                        for (int l = -l0; l <= l1; l++)
+                        {
+                            if (my_mask[x + k][y + l] != 0)
+                                tmp_diff += dist(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
+
+
+                        }
+                    sum_diff[i][j] = tmp_diff;
+                    if (min_diff > tmp_diff)
+                    {
+                        sx = i;
+                        sy = j;
+                        min_diff = tmp_diff;
+                    }
+
+                }
+        }
+        //usable[x][y] = -1;
+        //用（sx，sy）周围的点的RGB值填充xy周围需要被填充的点
+        for (int k = -k0; k <= k1; k++)
+            for (int l = -l0; l <= l1; l++)
+                if (my_mask[x + k][y + l] == 0)
+                {
+                    result.at<Vec3b>(x + k, y + l) = result.at<Vec3b>(sx + k, sy + l);
+                    my_mask[x + k][y + l] = 1;
+                    //usable[x + k][y + l] = 1;
+                    filled++;
+                    img.at<Vec3b>(x, y) = Vec3b(0, 0, 255);
+
+                }
+
+//				mergeImg(output, img, result);
+//				imshow("Output", output);
+//				waitKey(10);
+        printf("done :%.2lf%%\n", 100.0 * filled / to_fill);
+        //imwrite("final.png", result);
+        imshow("run", result);
+        waitKey(10);
+    }
+    mergeImg(output, img, result);
+//			imwrite("final.png", result);
+//			imwrite("Output.png", output);
+//			imshow("Output", output);
+//			waitKey(0);
+}
+
+
+//全黑色是0，全白色是255
+// mask: 二值化的mask图像
+// Linemask：暂时理解为结构线
+// mat：是之前带有mask的没有进行纹理补全的结果
+// result：最后输出的结果
+void TextureCompletion(Mat _mask, Mat LineMask, const Mat &mat, Mat &result)
+{
+    int N = _mask.rows;
+    int M = _mask.cols;
+    int knowncount = 0;
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            knowncount += (_mask.at<uchar>(i, j) == 255);
+            //统计输入mask中纯白色像素点的个数
+        }
+    //做了一种优化处理，判断是黑色点多还是白色点多，从而进行后面的操作
+    // mask部分是0白色？？
+    if (knowncount * 2< N * M)
+    {
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < M; j++)
+                _mask.at<uchar>(i, j) = 255 - _mask.at<uchar>(i, j);
+    }
+
+    //新建一个my_mask和sum_diff
+    vector<vector<int> >my_mask(N, vector<int>(M, 0)), sum_diff(N, vector<int>(M, 0));
+
+    //Linemask扩大这后面白色的255*100变成灰色，黑色依旧是0
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+            LineMask.at<uchar>(i, j) = LineMask.at<uchar>(i, j) * 100;
+
+    result = mat.clone();
+    /*imshow("mask", _mask);
+    imshow("linemask", LineMask);*/
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            //mymask对应于mask（mask中的黑色遮挡部分mymask为0，mask白色部分mymask为1）
+            my_mask[i][j] = (_mask.at<uchar>(i, j) == 255);
+            //如果mymask中的一个位置坐标既是遮挡，又是LineMask中的灰色部分，则标注为2
+            if (my_mask[i][j] == 0 && LineMask.at<uchar>(i, j) > 0)
+            {
+                my_mask[i][j] = 2;
+            }
+        }
+    /*
+    my_mask的结构
+    1 1 1 1 1 1 1
+    1 1 1 1 1 1 1
+    1 0 0 0 0 0 1
+    1 0 0 0 2 0 1  ---结构线
+    1 0 2 2 2 0 1  ---结构线
+    1 0 0 0 0 0 1
+    1 1 1 1 1 1 1
+    */
+
+    int bs = 5;
+    int step = 1 * bs;
+    auto usable(my_mask);	//自动生成了一个和mymask相同类型的变量
+    int to_fill = 0;	//mymask中未被填充的阴影遮挡的部分（非结构线）
+    int filled = 0;		//mymask中未被填充的阴影遮挡的部分（非结构线）
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            to_fill += (my_mask[i][j] == 0);
+        }
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+        {
+            //如果my_mask[i][j] == 1说明不需要填充则继续
+            if (my_mask[i][j] == 1)
+                continue;
+            //对于mymask中需要被填充的地方
+            //在一个step的矩形邻域内，需要把usable标记为2
+            //usable[k][l] == 2说明需要被填充
+            //（我的理解是在原来的mask周围扩大了需要补全纹理的范围）
+            int k0 = max(0, i - step), k1 = min(N - 1, i + step);
+            int l0 = max(0, j - step), l1 = min(M - 1, j + step);
+            for (int k = k0; k <= k1; k++)
+                for (int l = l0; l <= l1; l++)
+                    usable[k][l] = 2;
+        }
+    //按照usable中2的地方生成一个黑白图，其中白色是需要填充的地方值为2
+    Mat use = _mask.clone();
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+            if (usable[i][j] == 2)
+                use.at<uchar>(i, j) = 255;
+            else use.at<uchar>(i, j) = 0;
+    //imshow("usable", use);
+
+
+    int itertime = 0;
+    Mat match;
+    while (true)
+    {
+        itertime++;
+        int x, y, cnt = -1;
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < M; j++)
+            {
+                //略过不需要填充的地方以及轮廓线部分
+                if (my_mask[i][j] != 0) continue;
+                //此时my_mask[i][j]==0
+                bool edge = false;
+                int k0 = max(0, i - 1), k1 = min(N - 1, i + 1);
+                int l0 = max(0, j - 1), l1 = min(M - 1, j + 1);
+                //取到像素点的一个小邻域8个像素点，如果这个邻域内的点有一个是1则最后edge==true
+                /*
+                1 1 1
+                1 0 1
+                1 1 1
+                */
+                for (int k = k0; k <= k1; k++)
+                    for (int l = l0; l <= l1; l++)
+                        edge |= (my_mask[k][l] == 1);	//或等于 edge = edge | (my_mask==1);
+                if (!edge) continue;
+                //如果edge==true说明当前像素点是边界点
+                //------猜测后面需要对这个像素点进行融合运算！-------
+                k0 = max(0, i - bs), k1 = min(N - 1, i + bs);
+                l0 = max(0, j - bs), l1 = min(M - 1, j + bs);
+                int tmpcnt = 0;
+                //此时取到当前像素点周围的一个step大小的矩形邻域
+                //tmpcnt计算了这个矩形邻域内不需要填充的像素点的个数
+                for (int k = k0; k <= k1; k++)
+                    for (int l = l0; l <= l1; l++)
+                        tmpcnt += (my_mask[k][l] == 1);
+                if (tmpcnt > cnt)
+                {
+                    cnt = tmpcnt;
+                    x = i;
+                    y = j;
+                }
+                //结束for循环的时候xy记录了周围不需要填充像素最多的那个像素点的坐标
+            }
+        //如果cnt==-1说明所有edge都是false，也就是说所有mymask[i，j]都是1都是不需要填充，跳出while
+        if (cnt == -1) break;
+
+        bool debug = false;
+        bool debug2 = false;
+
+
+        //这部分再次遍历全图；比较一个邻域内和整张图片其他邻域内是否有相似的块
+        int k0 = min(x, bs), k1 = min(N - 1 - x, bs);
+        int l0 = min(y, bs), l1 = min(M - 1 - y, bs);
+        int sx, sy, min_diff = INT_MAX;	//最大的int值
+        for (int i = step; i + step < N; i += step)
+            for (int j = step; j + step < M; j += step)
+            {
+                //通过usable找到最近的不需要填充的像素点
+                //如果==2说明这里的纹理不可用
+                if (usable[i][j] == 2)continue;
+                int tmp_diff = 0;
+                //取到xy周围step的矩形邻域
+                for (int k = -k0; k <= k1; k++)
+                    for (int l = -l0; l <= l1; l++)
+                    {
+                        //printf("%d %d %d %d %d %d\n", i + k, j + l, x + k, y + l, N, M);
+                        //ij表示可以用来比较的不需要填充纹理的坐标点
+                        //xy表示当前需要被填充的点，由之前的for循环生成
+                        //[x + k][y + l]表示xy的step邻域内的某点
+                        //[i + k][j + l]表示ij的step邻域内的某点
+                        if (my_mask[x + k][y + l] != 0)
+                            tmp_diff += dist(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
+                        //tmp_diff计算了这两个对应点之间，RGB值的差异；显然需要全图搜索找到一个最小的tmpdiff，这说明这两块邻域最像
+
+
+                        //--------------------------这里似乎有文章？？？没有规定这个对应点的范围，没有考虑轮廓线--------------------//
+
+
+
+                    }
+                sum_diff[i][j] = tmp_diff;
+                if (min_diff > tmp_diff)
+                {
+                    sx = i;
+                    sy = j;
+                    min_diff = tmp_diff;
+                }
+                //结束循环的时候，得到的是对比xy有最小tmpdiff的点的坐标sx，sy
+            }
+
+
+        if (debug)
+        {
+            printf("x = %d y = %d\n", x, y);
+            printf("sx = %d sy = %d\n", sx, sy);
+            printf("mindiff = %d\n", min_diff);
+        }
+        if (debug2)
+        {
+            match = result.clone();
+        }
+        //用（sx，sy）周围的点的RGB值填充xy周围需要被填充的点
+        for (int k = -k0; k <= k1; k++)
+            for (int l = -l0; l <= l1; l++)
+                if (my_mask[x + k][y + l] == 0)
+                {
+                    result.at<Vec3b>(x + k, y + l) = result.at<Vec3b>(sx + k, sy + l);
+                    my_mask[x + k][y + l] = 1;
+                    filled++;
+                    if (debug)
+                    {
+                        result.at<Vec3b>(x + k, y + l) = Vec3b(255, 0, 0);
+                        result.at<Vec3b>(sx + k, sy + l) = Vec3b(0, 255, 0);
+                    }
+                    if (debug2)
+                    {
+                        match.at<Vec3b>(x + k, y + l) = Vec3b(255, 0, 0);
+                        match.at<Vec3b>(sx + k, sy + l) = Vec3b(0, 255, 0);
+                    }
+                }
+                else
+                {
+                    if (debug)
+                    {
+                        printf("(%d,%d,%d) matches (%d,%d,%d)\n", result.at<Vec3b>(x + k, y + l)[0], result.at<Vec3b>(x + k, y + l)[1], result.at<Vec3b>(x + k, y + l)[2], result.at<Vec3b>(sx + k, sy + l)[0], result.at<Vec3b>(sx + k, sy + l)[1], result.at<Vec3b>(sx + k, sy + l)[2]);
+                    }
+                }
+        if (debug2)
+        {
+            imshow("match", match);
+        }
+        if (debug) return;
+        printf("done :%.2lf%%\n", 100.0 * filled / to_fill);
+
+        imwrite("final1.png", result);
+        imshow("final1", result);
+        waitKey(0);
+    }
+
+}
+
+
+
+
+
+
+void texture(Mat origin, Mat img, Mat mask, Mat &finalResult2, Mat Linemask, string listpath)
+{
+    //四个输入：mask，line，
+    int m, n;
+    //读入原图
+//	Mat3b origin = imread("../Texture/origin/img4.png");
+//	Mat3b img = imread("../Texture/sp_result/sp4.png");//5,1
+
+    //读入二值化的mask图像
+//	Mat1b mask = Mat::zeros(img.rows, img.cols, CV_8UC1);
+//	mask = imread("../Texture/mask/mask4.bmp", 0);
+
+    threshold(mask, mask, 125, 255, CV_THRESH_BINARY_INV);
+    /*imshow("img", img);
+    waitKey(10);
+    imshow("mask", mask);
+    waitKey(10);*/
+    //生成带有mask但是没有进行补全的图
+    Mat3b result;
+    result.zeros(img.size());
+    img.copyTo(result, mask);
+    /*imshow("result", result);
+    waitKey(10);*/
+    //读入linemask
+//	Mat1b Linemask = Mat::zeros(img.rows, img.cols, CV_8UC1);
+//	Linemask = imread("../Texture/line/mask_s4.bmp", 0);
+
+
+    /*imshow("line", Linemask);
+    waitKey(10);*/
+    //最终结果变量
+//	Mat3b finalResult2(img.size());
+    img.copyTo(finalResult2);
+//	Mat3b finalResult1(img.size());
+//	img.copyTo(finalResult1);
+    /*imshow("final", finalResult1);]
+    waitKey(10);*/
+    Mat1b map = getContous(listpath, Linemask);
+    //TextureCompletion1(mask, Linemask, result, finalResult1);
+    //TextureCompletion2(mask, Linemask, result, finalResult2);
+    TextureCompletion3(origin, map, mask, Linemask, result, finalResult2);
+//    imshow("final", finalResult2);
+//    waitKey(0);
 }

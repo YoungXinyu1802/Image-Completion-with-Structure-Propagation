@@ -151,12 +151,6 @@
 		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h">
 			<Option target="ImageCompletion"/>
 		</Unit>
-		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/TextureCompletion.cpp">
-			<Option target="ImageCompletion"/>
-		</Unit>
-		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/TextureCompletion.h">
-			<Option target="ImageCompletion"/>
-		</Unit>
 		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/main.cpp">
 			<Option target="ImageCompletion"/>
 		</Unit>

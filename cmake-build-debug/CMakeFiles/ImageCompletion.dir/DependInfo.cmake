@@ -8,7 +8,6 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj"
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj"
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj"
-  "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/TextureCompletion.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/TextureCompletion.cpp.obj"
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/main.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/main.cpp.obj"
   "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.cpp" "D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir/math_function.cpp.obj"
   )

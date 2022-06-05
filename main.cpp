@@ -4,7 +4,7 @@
 #include "StructurePropagation.h"
 #include "OpenCvUtility.h"
 
-#include "TextureCompletion.h"
+//#include "TextureCompletion.h"
 
 using namespace std;
 using namespace cv;
@@ -227,19 +227,19 @@ void show_interface()
                 }
             }
 
-            for (int i = 0; i < plist.size(); i++)
-            {
-                DrawPoints(plist[i], draw_structure, CV_RGB(255, 0, 0), 1);
-
-                // save points along structure lines/curves
-                f.open("point_list/plist" + to_string(img_current) + ".txt", ios::app); // append
-                for (int j = 0; j < plist[i].size(); j++)
-                {
-                    f << plist[i][j].x << " " << plist[i][j].y << endl;
-                }
-                f << endl;
-                f.close();
-            }
+//            for (int i = 0; i < plist.size(); i++)
+//            {
+//                DrawPoints(plist[i], draw_structure, CV_RGB(255, 0, 0), 1);
+//
+//                // save points along structure lines/curves
+//                f.open("point_list/plist" + to_string(img_current) + ".txt", ios::app); // append
+//                for (int j = 0; j < plist[i].size(); j++)
+//                {
+//                    f << plist[i][j].x << " " << plist[i][j].y << endl;
+//                }
+//                f << endl;
+//                f.close();
+//            }
 
             Mat mask_structure_tmp = Mat::zeros(img.rows, img.cols, CV_8UC1);
 
@@ -251,7 +251,6 @@ void show_interface()
             mask_structure_tmp.copyTo(mask_structure, mask_structure_tmp);
             draw_structure = sp_result.clone();
             imshow("run", draw_structure);
-            TextureCompletion tp(&SP, sp_result);
 //            texture(img, sp_result, mask, ts_result, mask_structure, "point_list/plist" + to_string(img_current) + ".txt");
 //            tp.synthesize_texture();
             img_masked = sp_result;
@@ -288,13 +287,17 @@ void show_interface()
             imshow("run", draw_structure);
         }
             // texture synthesis
-//        else if (k == 't')
-//        {
-//            TextureCompletion tp(&sp, result);
-////            texture(img, sp_result, mask, ts_result, mask_structure, "point_list/plist" + to_string(img_current) + ".txt");
-//            tp.synthesize_texture();
-//            imshow("run", ts_result);
-//        }
+        else if (k == 't') {
+            Mat tmp = sp_result.clone();
+            for (int i = 0; i < plist.size(); i++) {
+                DrawPoints(plist[i], img, CV_RGB(255, 0, 0), 1);
+            }
+            Mat tp_result;
+            sp_result.copyTo(tp_result);
+//            imshow("img", tp_result);
+            SP.TextureCompletion(mask, mask_structure, tmp, tp_result);
+//            imshow("run", tp_result);
+        }
 
         k = waitKey(0);
     }

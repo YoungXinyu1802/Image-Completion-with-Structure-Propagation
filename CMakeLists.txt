@@ -15,7 +15,7 @@ add_executable(ImageCompletion
                 math_function.cpp math_function.h
                 Photometric.cpp Photometric.h
                 Photometric_Correction.cpp Photometric_Correction.h
-                TextureCompletion.cpp TextureCompletion.h
+#                TextureCompletion.cpp TextureCompletion.h
                 AnchorPoint.h)
 
 target_link_libraries(ImageCompletion ${OpenCV_LIBS})
