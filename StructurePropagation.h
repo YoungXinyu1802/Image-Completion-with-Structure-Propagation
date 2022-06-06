@@ -1,4 +1,3 @@
-//#include"Image.h"
 #ifndef STRUCTUREPROPAGATION_H
 #define STRUCTUREPROPAGATION_H
 #include"AnchorPoint.h"
@@ -15,14 +14,17 @@ private:
     int block_size;
     int sample_step;
     int line_or_curve;
-    float ks;
-    float ki;
+    double ks;
+    double ki;
 
     string path = "test_data/result/";
     /*
     the way to find the anchor point is that,from the first point on the curve,each turn we get the half number
     of points of the patch.
     */
+    double calDistance(vector<Point>ci, vector<Point>cxi);
+    double calSSD(Mat m1, Mat m2);
+
     int getOneAnchorPos(int lastanchor_index,PointType &t,int curve_index,bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample);
     void getOneCurveAnchors(int curve_index,vector<AnchorPoint>&unknown,vector<AnchorPoint>&sample);
 
@@ -30,22 +32,22 @@ private:
     int getOneAnchorBack(int lastanchor_index, PointType &t, int curve_index, bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample);
 
 
-    Point2i getAnchorPoint(AnchorPoint ap, int curve_index);
+    Point getAnchorPoint(AnchorPoint ap, int curve_index);
     Rect getRect(AnchorPoint ap, int curve_index);
 
-    Mat getOnePatch(Point2i p,Mat &img);
+    Mat getOnePatch(Point p,Mat &img);
     Mat getOnePatch(AnchorPoint ap, Mat &img, int curve_index);
     void copyPatchToImg(AnchorPoint unknown, Mat &patch, Mat &img, int curve_index);
 
-    float calcuEi(AnchorPoint unknown, AnchorPoint sample, int curve_index);
-    float calcuEs(AnchorPoint unknown, AnchorPoint sample, int curve_index);
-    float calcuE1(AnchorPoint unknown, AnchorPoint sample, int curve_index);
-    float calcuE2(AnchorPoint unknown1, AnchorPoint unknown2, AnchorPoint sample1, AnchorPoint sample2, int curve_index);
+    double calEi(AnchorPoint unknown, AnchorPoint sample, int curve_index);
+    double calEs(AnchorPoint unknown, AnchorPoint sample, int curve_index);
+    double calE1(AnchorPoint unknown, AnchorPoint sample, int curve_index);
+    double calE2(AnchorPoint unknown1, AnchorPoint unknown2, AnchorPoint sample1, AnchorPoint sample2, int curve_index);
 
     vector<int> DP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample, int curve_index);
     vector<int> BP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample, int curve_index);
     //to judge if two points are neighbor
-    bool isNeighbor(Point2i point1, Point2i point2);
+    bool isNeighbor(Point point1, Point point2);
     bool isIntersect(int curve1, int curve2);
     //add the front and the behind anchor point as the neighbor
     void addNeighborFB(int curve_index);
@@ -66,21 +68,16 @@ public:
     vector<vector<AnchorPoint>> sample_anchors;
     Photometric_Correction *pc;
     StructurePropagation() = default;
-//    StructurePropagation(Mat src) { image = *(new Image(src));  }
     void SetParam(int block_size, int sample_step, int line_or_curve, double ks, double ki);
     void Run(const Mat &mask, const Mat& img, Mat &mask_structure, vector<vector<Point>> &plist, Mat& result);
     void TextureCompletion(Mat _mask, Mat LineMask, const Mat &mat, Mat &result);
-//    void getMask() { image.getMask(); }
-//    void getCurves() { image.getCurves(); pc = (new Photometric_Correction(this->image.mask));}
     void getAnchors();
     void drawAnchors();
-    void getNewStructure();
-    //just for test
-    void testOneCurve();
 
     //tool function
-    Point2i getLeftTopPoint(int point_index, int curve_index);
-    Point2i getLeftTopPoint(Point2i p);
-    Rect getRect(Point2i p);
+    Point getLeftTopPoint(int point_index, int curve_index);
+    Point getLeftTopPoint(Point p);
+    Rect getRect(Point p);
 };
+
 #endif

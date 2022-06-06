@@ -6,14 +6,14 @@
 using namespace cv;
 using namespace std;
 
-float calcuSSD(Mat m1, Mat m2);
-float calcuDistance(vector<Point2i>ci, vector<Point2i>cxi);
-void initArray(float*a, int num);
+double calcuSSD(Mat m1, Mat m2);
+double calcuDistance(vector<Point>ci, vector<Point>cxi);
+void initArray(double*a, int num);
 void initArray(int *a, int num);
 void initArray(bool*a, int num);
-void addArray(float*a, float*b, float*c,int num);
-void minusArray(float*a, float*b, float *c,int num);
-bool isEqualArray(float *a, float*b, int num);
-void moveArray(float*a, float*b, int num);
-bool contain(Rect &rec, Point2i &p);
+void addArray(double*a, double*b, double*c,int num);
+void minusArray(double*a, double*b, double *c,int num);
+bool isEqualArray(double *a, double*b, int num);
+void moveArray(double*a, double*b, int num);
+bool contain(Rect &rec, Point &p);
 string int_to_string(int i);

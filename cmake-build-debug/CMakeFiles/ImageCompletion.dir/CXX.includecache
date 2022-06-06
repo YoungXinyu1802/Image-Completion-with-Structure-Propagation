@@ -28,6 +28,12 @@ opencv2/opencv.hpp
 iostream
 -
 
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.cpp
+StructurePropagation.h
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
+math_function.h
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.h
+
 D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
 AnchorPoint.h
 D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/AnchorPoint.h
@@ -49,6 +55,22 @@ StructurePropagation.h
 D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
 OpenCvUtility.h
 D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/OpenCvUtility.h
+
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.cpp
+math_function.h
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.h
+param.h
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/param.h
+limits
+-
+
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.h
+opencv2/opencv.hpp
+-
+iostream
+-
+vector
+-
 
 D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/param.h
 string
