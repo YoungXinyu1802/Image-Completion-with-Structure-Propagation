@@ -218,28 +218,6 @@ void show_interface()
         // structure propagation
         if (k == 's')
         {
-            if (line_or_curve == CURVE_STRUCTURE)
-            {
-                plist.resize(mousepoints.size());
-                for (int i = 0; i < mousepoints.size(); i++)
-                {
-                    GetCurve(mousepoints[i], plist[i]);
-                }
-            }
-
-//            for (int i = 0; i < plist.size(); i++)
-//            {
-//                DrawPoints(plist[i], draw_structure, CV_RGB(255, 0, 0), 1);
-//
-//                // save points along structure lines/curves
-//                f.open("point_list/plist" + to_string(img_current) + ".txt", ios::app); // append
-//                for (int j = 0; j < plist[i].size(); j++)
-//                {
-//                    f << plist[i][j].x << " " << plist[i][j].y << endl;
-//                }
-//                f << endl;
-//                f.close();
-//            }
 
             Mat mask_structure_tmp = Mat::zeros(img.rows, img.cols, CV_8UC1);
 
@@ -337,6 +315,9 @@ static void callback_draw_structure(int event, int x, int y, int flags, void* pa
         {
             prev_pt = Point(-1, -1);
             mousepoints.push_back(curvepoints);
+            vector<Point> tempcurve;
+            GetCurve(curvepoints, tempcurve);
+            plist.push_back(tempcurve);
             curvepoints = vector<Point>();
         }
         if ( event == CV_EVENT_LBUTTONDOWN )
