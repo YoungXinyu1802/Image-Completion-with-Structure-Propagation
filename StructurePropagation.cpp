@@ -265,7 +265,7 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
         M[i] = new double*[unknown_size];
         for (int j = 0; j < unknown_size; j++) {
             M[i][j] = new double[sample_size];
-//            initArray(M[i][j], sample_size);
+            initArray(M[i][j], sample_size);
         }
     }
 
@@ -281,7 +281,7 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
     bool **isConverge = new bool*[unknown_size];
     for (int i = 0; i < unknown_size; i++) {
         isConverge[i] = new bool[unknown_size];
-//        initArray(isConverge[i], unknown_size);
+        initArray(isConverge[i], unknown_size);
     }
 
 
@@ -290,10 +290,12 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
     double *new_vec = new double[sample_size];//the final vector callated for M[i][j]
 
     //begin to iterate
+    cout << "unknown_size:" << unknown_size << endl;
     for (int t = 0; t < unknown_size; t++) {
+        cout << "t: " << t << endl;
         for (int node = 0; node < unknown_size; node++) {
             //calcaulate the sum of M[t-1][i][j]
-//            initArray(sum_vec, sample_size);
+            initArray(sum_vec, sample_size);
             for (int neighbor_index = 0; neighbor_index < unknown[node].neighbors.size(); neighbor_index++) {
                 //neighbors to node
                 addArray(sum_vec, M[neighbor_index][node],sum_vec,sample_size);
@@ -307,7 +309,9 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
                 minusArray(sum_vec, M[neighbor_index][node], E_M_sum, sample_size);
                 addArray(E_M_sum, E1[node], E_M_sum,sample_size);
 
+//                cout << "sample_size = " << sample_size << endl;
                 for (int xj = 0; xj < sample_size; xj++) {
+//                    cout << "xj: " << xj << endl;
                     double min = FLT_MAX;
                     for (int xi = 0; xi < sample_size; xi++) {
                         double E2 = calE2(unknown[node], unknown[neighbor_index], sample[xi], sample[xj], curve_index);
@@ -330,10 +334,12 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
 
         }
     }
+    cout << "finish iteration" << endl;
 
     //after iteration,we need to find the optimum label for every node
     for (int i = 0; i < unknown_size; i++) {
-//        initArray(sum_vec, sample_size);
+        cout << "i: " << i << endl;
+        initArray(sum_vec, sample_size);
         addArray(sum_vec, E1[i], sum_vec,sample_size);
         for (int j = 0; j < unknown[i].neighbors.size(); j++) {
             //neighbor to node
@@ -579,19 +585,19 @@ int StructurePropagation::getOneAnchorFront(int lastanchor_index, PointType &t, 
     }
     return i;
 }
-int StructurePropagation::getOneAnchorBack(int lastanchor_index, PointType &t, int curve_index, bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample) {
-    Point p = pointlist[curve_index][lastanchor_index];
-    Rect rec = getRect(p);
-    int i = lastanchor_index - 1;
-    t = OUTER;
-    while (i >= 0 && contain(rec, pointlist[curve_index][i])) {
-        i--;
-    }
-    if (i < 0) {
-        return -1;
-    }
-    return i;
-}
+//int StructurePropagation::getOneAnchorBack(int lastanchor_index, PointType &t, int curve_index, bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample) {
+//    Point p = pointlist[curve_index][lastanchor_index];
+//    Rect rec = getRect(p);
+//    int i = lastanchor_index - 1;
+//    t = OUTER;
+//    while (i >= 0 && contain(rec, pointlist[curve_index][i])) {
+//        i--;
+//    }
+//    if (i < 0) {
+//        return -1;
+//    }
+//    return i;
+//}
 void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample){
     //Point unknown_begin;
     int unknown_begin;
@@ -612,7 +618,8 @@ void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoin
         if (last_index < 0) {
             break;
         }
-        now_index = getOneAnchorBack(last_index, type, curve_index, flag, unknown, sample);
+//        now_index = getOneAnchorBack(last_index, type, curve_index, flag, unknown, sample);
+        now_index = last_index - sample_step;
         if (now_index < 0) {
             break;
         }
@@ -630,7 +637,8 @@ void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoin
     }
 
 
-    int first_unknown_begin = getOneAnchorBack(unknown_begin, type, curve_index, flag, unknown, sample) + 1;
+//    int first_unknown_begin = getOneAnchorBack(unknown_begin, type, curve_index, flag, unknown, sample) + 1;
+    int first_unknown_begin = unknown_begin - sample_step + 1;
     now_index = unknown_begin;
     last_index = unknown_begin;
     AnchorPoint anchor(first_unknown_begin, now_index, now_index, BORDER);

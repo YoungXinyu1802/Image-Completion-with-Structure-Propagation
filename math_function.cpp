@@ -31,21 +31,21 @@
 //    return result;
 //}
 
-//void initArray(double*a, int num) {
-//    for (int i = 0; i < num; i++) {
-//        a[i] = 0;
-//    }
-//}
-//void initArray(int *a, int num) {
-//    for (int i = 0; i < num; i++) {
-//        a[i] = 0;
-//    }
-//}
-//void initArray(bool*a, int num) {
-//    for (int i = 0; i < num; i++) {
-//        a[i] = false;
-//    }
-//}
+void initArray(double*a, int num) {
+    for (int i = 0; i < num; i++) {
+        a[i] = 0;
+    }
+}
+void initArray(int *a, int num) {
+    for (int i = 0; i < num; i++) {
+        a[i] = 0;
+    }
+}
+void initArray(bool*a, int num) {
+    for (int i = 0; i < num; i++) {
+        a[i] = false;
+    }
+}
 
 void addArray(double*a, double*b, double*c, int num) {
     for (int i = 0; i < num; i++) {
