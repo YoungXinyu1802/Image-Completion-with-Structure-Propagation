@@ -50,34 +50,6 @@ Mat  Photometric_Correction::correct(Mat &patch, Mat &imgmask, Mat &resImg, Rect
             }
         }
     }
-    /*for (int i = 0; i < dst.cols; i++) {
-        if (_mask.at<uchar>(0, i) == 255) {
-            dst.at<Vec3b>(0, i) = patch.at<Vec3b>(0, i);
-        }
-        if (_mask.at<uchar>(dst.rows-1, i) == 255) {
-             dst.at<Vec3b>(dst.rows - 1, i) = patch.at<Vec3b>(dst.rows - 1, i);
-        }
-        if (_mask.at<uchar>(1, i) == 255) {
-            dst.at<Vec3b>(1, i) = patch.at<Vec3b>(1, i);
-        }
-        if (_mask.at<uchar>(dst.rows - 2, i) == 255) {
-            dst.at<Vec3b>(dst.rows - 2, i) = patch.at<Vec3b>(dst.rows - 2, i);
-        }
-    }
-    for (int j = 0; j < dst.rows; j++) {
-        if (_mask.at<uchar>(j, 1) == 255) {
-            dst.at<Vec3b>(j, 1) = patch.at<Vec3b>(j, 1);
-        }
-        if (_mask.at<uchar>(j, dst.cols - 2) == 255) {
-            dst.at<Vec3b>(j, dst.cols - 2) = patch.at<Vec3b>(j, dst.cols - 2);
-        }
-        if (_mask.at<uchar>(j, 0) == 255) {
-            dst.at<Vec3b>(j, 0) = patch.at<Vec3b>(j, 0);
-        }
-        if (_mask.at<uchar>(j, dst.cols - 1) == 255) {
-            dst.at<Vec3b>(j, dst.cols - 1) = patch.at<Vec3b>(j, dst.cols - 1);
-        }
-    }*/
     Rect re;
     re.x = 1; re.y = 1;
     re.width = rec.width - 1;
@@ -88,11 +60,6 @@ Mat  Photometric_Correction::correct(Mat &patch, Mat &imgmask, Mat &resImg, Rect
     src = src(re).clone();
     seamlessClone(src, dst, _mask, Point(patch.cols / 2, patch.rows / 2), blend, NORMAL_CLONE);
     blend.copyTo(patch);
-    //imshow("dst_n", dst);
-    //imshow("blend", blend);
-    //imshow("res", resImg);
-    //waitKey();
-//    updateMask(rec);
     imgmask(rec).setTo(255);
     return blend;
 }

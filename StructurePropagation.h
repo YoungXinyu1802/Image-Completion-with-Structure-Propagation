@@ -25,11 +25,8 @@ private:
     double calDistance(vector<Point>ci, vector<Point>cxi);
     double calSSD(Mat m1, Mat m2);
 
-    int getOneAnchorPos(int lastanchor_index,PointType &t,int curve_index,bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample);
     void getOneCurveAnchors(int curve_index,vector<AnchorPoint>&unknown,vector<AnchorPoint>&sample);
 
-    int getOneAnchorFront(int lastanchor_index, PointType &t, int curve_index, bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample);
-    int getOneAnchorBack(int lastanchor_index, PointType &t, int curve_index, bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample);
 
 
     Point getAnchorPoint(AnchorPoint ap, int curve_index);
@@ -38,6 +35,7 @@ private:
     Mat getOnePatch(Point p,Mat &img);
     Mat getOnePatch(AnchorPoint ap, Mat &img, int curve_index);
     void copyPatchToImg(AnchorPoint unknown, Mat &patch, Mat &img, int curve_index);
+    bool isBorder(Point p, bool isSample);
 
     double calEi(AnchorPoint unknown, AnchorPoint sample, int curve_index);
     double calEs(AnchorPoint unknown, AnchorPoint sample, int curve_index);
@@ -49,8 +47,6 @@ private:
     //to judge if two points are neighbor
     bool isNeighbor(Point point1, Point point2);
     bool isIntersect(int curve1, int curve2);
-    //add the front and the behind anchor point as the neighbor
-    void addNeighborFB(int curve_index);
     //to find the intersecting curves and merge them into the first curve
     void mergeCurves(vector<bool>&isSingle);
 

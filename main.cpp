@@ -216,11 +216,9 @@ void show_interface()
     while (k != 27)
     {
         // structure propagation
+        Mat mask_structure_tmp = Mat::zeros(img.rows, img.cols, CV_8UC1);
         if (k == 's')
         {
-
-            Mat mask_structure_tmp = Mat::zeros(img.rows, img.cols, CV_8UC1);
-
             // run structure propagation
             SP.SetParam(block_size, sample_step, line_or_curve, ks, ki);
             cout << plist.size() << endl;

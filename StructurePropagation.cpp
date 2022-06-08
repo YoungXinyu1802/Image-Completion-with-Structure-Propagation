@@ -376,24 +376,9 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
 
 }
 
-void StructurePropagation::addNeighborFB(int curve_index) {
-    for (int i = 0; i < unknown_anchors[curve_index].size(); i++) {
-        if (i - 1 >= 0) {
-            unknown_anchors[curve_index][i].neighbors.push_back(i - 1);
-        }
-        if (i + 1 < unknown_anchors[curve_index].size()) {
-            unknown_anchors[curve_index][i].neighbors.push_back(i + 1);
-        }
-    }
-}
-
 void StructurePropagation::mergeCurves(vector<bool>&isSingle) {
 
     int num_curves = pointlist.size();
-    //initialize the neighbors
-    for (int i = 0; i < num_curves; i++) {
-        addNeighborFB(i);
-    }
 
     //begin to merge
     for (int i = 0; i < num_curves; i++) {
@@ -475,7 +460,7 @@ void StructurePropagation::drawAnchors() {
             //circle(showAnchors, p, 5, Scalar(255, 255, 0));
             Point tmp = getLeftTopPoint(p);
             Rect rec(tmp.x,tmp.y, block_size, block_size);
-            rectangle(showAnchors, rec, Scalar(255, 255, 0));
+            rectangle(showAnchors, rec, Scalar(255, 0, 0));
         }
     }
     for (int i = 0; i < unknown_anchors.size(); i++) {
@@ -494,7 +479,10 @@ void StructurePropagation::drawAnchors() {
 void StructurePropagation::Run(const Mat &mask, const Mat& img, Mat &mask_structure, vector<vector<Point>> &plist, Mat& result) {
     this->mask = mask;
     this->img = img;
+    this->pointlist.clear();
     this->pointlist = plist;
+    this->sample_anchors.clear();
+    this->unknown_anchors.clear();
     getAnchors();
     drawAnchors();
     int curve_size = plist.size();
@@ -552,162 +540,63 @@ void StructurePropagation::getAnchors() {
 
 }
 
-//get all the anchor points on the one curve
-int StructurePropagation::getOneAnchorFront(int lastanchor_index, PointType &t, int curve_index, bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample) {
-    Point p = pointlist[curve_index][lastanchor_index];
-    Rect rec = getRect(p);
-    int i = lastanchor_index + 1;
-    if (i >= pointlist[curve_index].size() - 1) {
-        return pointlist[curve_index].size() - 1;
-    }
-    if (mask.at<uchar>(pointlist[curve_index][i]) == 0) {
-        t = INNER;
-    }
-    else {
-        t = OUTER;
-    }
-    while (i < pointlist[curve_index].size() && contain(rec,pointlist[curve_index][i])) {
-        uchar tmp = mask.at<uchar>(pointlist[curve_index][i]);
-        if (tmp == 0 && t == OUTER || tmp == 255 && t == INNER) {
-            t = BORDER;
-            if (flag) {
-                int count = sample.size();
-                if (count>0)
-                    sample[count - 1].type = BORDER;
-            }
-            else {
-                int count = unknown.size();
-                if (count>0)
-                    unknown[count - 1].type = BORDER;
-            }
+bool StructurePropagation::isBorder(Point p, bool isSample) {
+//    Point p = pointlist[curve_index][anchor_index];
+    int left = MAX(p.x - block_size / 2, 0);
+    int right = MIN(p.x + block_size / 2, mask.cols);
+    int up = MAX(p.y - block_size / 2, 0);
+    int down = MIN(p.y + block_size / 2, mask.rows);
+    for (int i = left; i < right; i++) {
+        if (!mask.at<uchar>(up, i) == isSample || !mask.at<uchar>(down - 1, i) == isSample) {
+            return true;
         }
-        i++;
     }
-    return i;
+
+    for (int i = up; i < down; i++) {
+        if (!mask.at<uchar>(i, left) == isSample || !mask.at<uchar>(i, right - 1) == isSample) {
+            return true;
+        }
+    }
+    return false;
 }
-//int StructurePropagation::getOneAnchorBack(int lastanchor_index, PointType &t, int curve_index, bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample) {
-//    Point p = pointlist[curve_index][lastanchor_index];
-//    Rect rec = getRect(p);
-//    int i = lastanchor_index - 1;
-//    t = OUTER;
-//    while (i >= 0 && contain(rec, pointlist[curve_index][i])) {
-//        i--;
-//    }
-//    if (i < 0) {
-//        return -1;
-//    }
-//    return i;
-//}
-void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample){
-    //Point unknown_begin;
-    int unknown_begin;
+
+
+void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample) {
     int num_points = pointlist[curve_index].size();
-    for (int i = 0; i < num_points; i++) {
-        if (mask.at<uchar>(pointlist[curve_index][i]) == 0) {
-            unknown_begin = i;
-            break;
-        }
-    }
     PointType type;
-    bool flag = true;
-    //find all the unknown anchor points
-    int now_index, last_index;
-
-    last_index = unknown_begin;
-    while (true) {
-        if (last_index < 0) {
-            break;
+    int cur_idx, next_idx;
+    cur_idx = 0;
+    bool border;
+    int cur_unknown = 0;
+    for (cur_idx = 0; cur_idx < num_points; cur_idx += sample_step) {
+        // outside the image
+        Point p = pointlist[curve_index][cur_idx];
+        if (p.x - block_size / 2 < 0 || p.x + block_size / 2 >= img.cols || p.y - block_size / 2 < 0 || p.y + block_size / 2 >= img.rows){
+            continue;
         }
-//        now_index = getOneAnchorBack(last_index, type, curve_index, flag, unknown, sample);
-        now_index = last_index - sample_step;
-        if (now_index < 0) {
-            break;
-        }
-        if (last_index != unknown_begin) {
-            sample[sample.size() - 1].begin_point = now_index + 1;
-        }
-        AnchorPoint anchor(now_index, last_index-1, now_index, type);
-        sample.push_back(anchor);
-        last_index = now_index;
-    }
-    //this point doesn't have enough points in the patch
-    if(sample.size()>0){
-        sample.pop_back();
-        reverse(sample.begin(), sample.end());
-    }
-
-
-//    int first_unknown_begin = getOneAnchorBack(unknown_begin, type, curve_index, flag, unknown, sample) + 1;
-    int first_unknown_begin = unknown_begin - sample_step + 1;
-    now_index = unknown_begin;
-    last_index = unknown_begin;
-    AnchorPoint anchor(first_unknown_begin, now_index, now_index, BORDER);
-    unknown.push_back(anchor);
-
-    while (true) {
-        now_index = getOneAnchorFront(now_index, type, curve_index, flag, unknown, sample);
-        if (now_index >= pointlist[curve_index].size() - 1)
-            break;
-        if (flag) {
-            unknown[unknown.size() - 1].end_point = now_index - 1;
+        uchar cur_point, next_point;
+        cur_point = mask.at<uchar>(pointlist[curve_index][cur_idx]);
+        if (mask.at<uchar>(p) == 0) {
+            border = isBorder(p, false);
+            type = border ? BORDER : INNER;
         }
         else {
-            sample[sample.size() - 1].end_point = now_index - 1;
+            border = isBorder(p, true);
+            type = border ? BORDER : OUTER;
         }
-        AnchorPoint anchor(last_index + 1, now_index, now_index, type);
-        if (anchor.type == OUTER) {
-            sample.push_back(anchor);
-            flag = false;
-        }
-        else {
+        AnchorPoint anchor (cur_idx - block_size / 2, cur_idx + block_size / 2, cur_idx, type);
+        if (type == BORDER || type == INNER) {
+            if (cur_unknown - 1 >= 0) {
+                anchor.neighbors.push_back(cur_unknown - 1);
+                unknown[cur_unknown - 1].neighbors.push_back(cur_unknown);
+            }
             unknown.push_back(anchor);
-            flag = true;
+            cur_unknown += 1;
         }
-        last_index = now_index;
-    }
-
-    if (flag) {
-        unknown.pop_back();
-    }
-    else {
-        sample.pop_back();
-    }
-}
-
-int StructurePropagation::getOneAnchorPos(int lastanchor_index, PointType &t, int curve_index,bool flag, vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample){
-
-    Point vertex = getLeftTopPoint(lastanchor_index, curve_index);
-    Rect rec(vertex.x, vertex.y, block_size, block_size);
-
-    int i = lastanchor_index+1;//this point will be the begin point in the next patch,so we should judge its type
-    if (i >= pointlist[curve_index].size() - 1) {
-        return pointlist[curve_index].size() - 1;
-    }
-    if (mask.at<uchar>(pointlist[curve_index][i]) == 0) {
-        t = INNER;
-    }
-    else {
-        t = OUTER;
-    }
-
-    while (i < pointlist[curve_index].size() && rec.contains(pointlist[curve_index][i])) {
-        uchar tmp = mask.at<uchar>(pointlist[curve_index][i]);
-        if (tmp == 0 && t == OUTER || tmp == 255 && t == INNER) {
-            t = BORDER;
-            if (flag) {
-                int count = sample.size();
-                if(count>0)
-                    sample[count-1].type = BORDER;
-            }
-            else {
-                int count = unknown.size();
-                if (count>0)
-                    unknown[count - 1].type = BORDER;
-            }
+        else {
+            sample.push_back(anchor);
         }
-        i++;
     }
-    return i;
 }
 
 Mat StructurePropagation::getOnePatch(Point p,Mat &img) {

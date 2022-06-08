@@ -6,44 +6,14 @@
 
 #IncludeRegexTransform: 
 
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/AnchorPoint.h
-param.h
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/param.h
-vector
--
-
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.h
-opencv2/opencv.hpp
--
-iostream
--
-
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.cpp
-StructurePropagation.h
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
-math_function.h
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.h
-
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
-AnchorPoint.h
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/AnchorPoint.h
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.cpp
 Photometric_Correction.h
 D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.h
-opencv2/opencv.hpp
--
-vector
--
 
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.h
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.h
 opencv2/opencv.hpp
 -
 iostream
--
-vector
--
-
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/param.h
-string
 -
 
 E:/opencv/opencv/build/x64/MinGW/cv_cpu_config.h
