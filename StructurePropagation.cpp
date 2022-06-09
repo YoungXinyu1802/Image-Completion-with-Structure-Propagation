@@ -1,5 +1,8 @@
 #include"StructurePropagation.h"
 #include"math_function.h"
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+using namespace Eigen;
 
 void StructurePropagation::SetParam(int block_size, int sample_step, int line_or_curve, double ks, double ki) {
     this->block_size = block_size;
@@ -150,18 +153,16 @@ vector<int> StructurePropagation::DP(vector<AnchorPoint>&unknown, vector<AnchorP
     }
 
     // M(i) = E1 + min{E2 + M(i-1)}
-    double **M = new double*[unknown_size];
-    int **record = new int*[unknown_size];
-    for (int i = 0; i < unknown_size; i++) {
-        M[i] = new double[sample_size];
-        record[i] = new int[sample_size];
-    }
+    Eigen::MatrixXd M(unknown_size, sample_size);
+    M.fill(0);
+    Eigen::MatrixXd record(unknown_size, sample_size);
+    record.fill(0);
 
     // initialize M[0]: M[0][xi] = E[0][xi]
     double E1, E2;
     for (int i = 0; i < sample_size; i++) {
         E1 = calE1(unknown[0], sample[i]);
-        M[0][i] = E1;
+        M(0, i) = E1;
     }
 
     // compute M[i][j]
@@ -174,50 +175,43 @@ vector<int> StructurePropagation::DP(vector<AnchorPoint>&unknown, vector<AnchorP
             // find the sample index to make it the minimum
             for (int m = 0; m < sample_size; m++) {
                 E2 = calE2(unknown[i - 1], unknown[i], sample[m], sample[xi]);
-                double tmp = E2 + M[i - 1][m];
+                double tmp = E2 + M(i - 1, m);
                 if (tmp < min) {
                     min = tmp;
                     min_idx = m;
                 }
             }
-            // M_i(xi) = E1(xi) + min_(xi-1){E2 + Mi-1(xi-1)}
-            M[i][xi] = E1 + min;
-            record[i][xi] = min_idx;
+            M(i, xi) = E1 + min;
+            record(i, xi) = min_idx;
         }
     }
     vector<int> sample_label;
     // find the best patch for the last unknown anchor point
     int last_patch = 0;
-    double min = M[unknown_size - 1][0];
+    double min = M(unknown_size - 1, 0);
     for (int i = 0; i < sample_size; i++) {
-        if (M[unknown_size - 1][i] < min) {
+        if (M(unknown_size - 1, i) < min) {
             last_patch = i;
-            min = M[unknown_size - 1][i];
+            min = M(unknown_size - 1, i);
         }
     }
     sample_label.insert(sample_label.begin(), last_patch);
     //back tracing
     if (unknown_size > 1) {
         for (int i = unknown_size - 1; i > 0; i--) {
-            last_patch = record[i][last_patch];
+            last_patch = record(i, last_patch);
             sample_label.insert(sample_label.begin(), last_patch);
         }
     }
-
-    // free the memory
-    for (int i = 0; i < unknown_size; i++) {
-        delete[] M[i];
-        delete[] record[i];
-    }
-    delete[] M;
-    delete[] record;
 
     return sample_label;
 }
 
 
 bool StructurePropagation::isNeighbor(Point p1, Point p2) {
-    return norm(p1 - p2) < norm(Point(block_size / 2, block_size / 2));
+    int x = abs(p1.x - p2.x);
+    int y = abs(p1.y - p2.y);
+    return x < block_size && y < block_size;
 }
 
 bool StructurePropagation::isIntersect(int curve1, int curve2) {
@@ -256,70 +250,59 @@ bool StructurePropagation::isIntersect(int curve1, int curve2) {
 vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample, int curve_index) {
     cout << "begin to BP ... ..." << endl;
 
-    vector<int>label;
+    vector<int>sample_label;
     int unknown_size = unknown.size();
     int sample_size = sample.size();
 
-    double ***M = new double**[unknown_size];//unknown_times*unknown_size*sample_size
-    double **E1 = new double*[unknown_size];//unknonw_size*sample_size
+    Matrix<VectorX<double>, Dynamic, Dynamic> M;
+    M.resize(unknown_size, unknown_size);
+    VectorX<double> M_in(sample_size);
+    M_in.fill(0);
+    M.fill(M_in);
+    VectorX<VectorX<double>> E1(unknown_size);
+    VectorX<double> E1_in(sample_size);
+    E1_in.fill(0);
+    E1.fill(E1_in);
 
-    //initilize the array
+    // calculate the E1 matrix
     for (int i = 0; i < unknown_size; i++) {
-        E1[i] = new double[sample_size];
-        M[i] = new double*[unknown_size];
-        for (int j = 0; j < unknown_size; j++) {
-            M[i][j] = new double[sample_size];
-            initArray(M[i][j], sample_size);
+        for (int xi = 0; xi < sample_size; xi++) {
+            E1[i][xi] = calE1(unknown[i], sample[xi]);
         }
     }
-
-    //to callate the matrix E1 for the convenience of the next callation
-    for (int i = 0; i < unknown_size; i++) {
-        for (int j = 0; j < sample_size; j++) {
-            E1[i][j] = calE1(unknown[i], sample[j]);
-        }
-    }
-
 
     //to judge if the node has been converged
-    bool **isConverge = new bool*[unknown_size];
-    for (int i = 0; i < unknown_size; i++) {
-        isConverge[i] = new bool[unknown_size];
-        initArray(isConverge[i], unknown_size);
-    }
+    Matrix<bool, Dynamic, Dynamic> isConverge;
+    isConverge.resize(unknown_size, unknown_size);
+    isConverge.fill(false);
 
-
-    double *sum_vec = new double[sample_size];//the sum of vectors from neighbors
-    double *E_M_sum = new double[sample_size];//sum_vec-M[j][i]+E[i]
-    double *new_vec = new double[sample_size];//the final vector callated for M[i][j]
+    VectorX<double> sum_vec(sample_size);
+    VectorX<double> E_M_sum(sample_size);
+    VectorX<double> new_vec(sample_size);
 
     //begin to iterate
-    cout << "unknown_size:" << unknown_size << endl;
-    for (int t = 0; t < unknown_size; t++) {
+    cout << "unknown_size:" << max_unknownsize << endl;
+    for (int t = 0; t < max_unknownsize; t++) {
         cout << "t: " << t << endl;
         for (int node = 0; node < unknown_size; node++) {
             //calculate the sum of M[t-1][i][j]
-            initArray(sum_vec, sample_size);
+            sum_vec.fill(0);
             for (int neighbor_index = 0; neighbor_index < unknown[node].neighbors.size(); neighbor_index++) {
                 //neighbors to node
-                addArray(sum_vec, M[neighbor_index][node],sum_vec,sample_size);
-                for (int i = 0; i < sample_size; i++) {
-                    sum_vec[i] += M[neighbor_index][node][i];
-                }
+                sum_vec = sum_vec - M(neighbor_index, node);
             }
             //node to neighbors
+            int size = unknown[node].neighbors.size();
             for (int times = 0; times < unknown[node].neighbors.size(); times++) {
                 int neighbor_index = unknown[node].neighbors[times];
-                if (isConverge[node][neighbor_index] == true) {
+                if (isConverge(node, neighbor_index)) {
                     continue;
                 }
-                minusArray(sum_vec, M[neighbor_index][node], E_M_sum, sample_size);
-                addArray(E_M_sum, E1[node], E_M_sum,sample_size);
+                sum_vec = sum_vec - M(neighbor_index, node);
+                E_M_sum = E_M_sum + E1[node] + sum_vec;
 
-//                cout << "sample_size = " << sample_size << endl;
                 for (int xj = 0; xj < sample_size; xj++) {
-//                    cout << "xj: " << xj << endl;
-                    double min = FLT_MAX;
+                    double min = DBL_MAX;
                     for (int xi = 0; xi < sample_size; xi++) {
                         double E2 = calE2(unknown[node], unknown[neighbor_index], sample[xi], sample[xj]);
                         double sum = E2 + E_M_sum[xi];
@@ -330,12 +313,12 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
                     new_vec[xj] = min;
                 }
                 //to judge if the vector has been converged
-                bool flag = isEqualArray(M[node][neighbor_index], new_vec,sample_size);
+                bool flag = (M(node, neighbor_index) == new_vec);
                 if (flag) {
-                    isConverge[node][neighbor_index] = true;
+                    isConverge(node, neighbor_index) = true;
                 }
                 else {
-                    moveArray(M[node][neighbor_index], new_vec, sample_size);
+                    M(node, neighbor_index) = new_vec;
                 }
             }
 
@@ -346,11 +329,19 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
     //after iteration,we need to find the optimum label for every node
     for (int i = 0; i < unknown_size; i++) {
         cout << "i: " << i << endl;
-        initArray(sum_vec, sample_size);
-        addArray(sum_vec, E1[i], sum_vec,sample_size);
+        for (int k = 0; k < sample_size; k++) {
+            sum_vec[k] = 0;
+            sum_vec[k] += E1[i][k];
+        }
+//        initArray(sum_vec, sample_size);
+//        addArray(sum_vec, E1[i], sum_vec,sample_size);
         for (int j = 0; j < unknown[i].neighbors.size(); j++) {
             //neighbor to node
-            addArray(sum_vec, M[j][i], sum_vec, sample_size);
+            sum_vec += M(j, i);
+//            for (int k = 0; k < sample_size; k++) {
+//                sum_vec[k] += M[j][i][k];
+//            }
+//            addArray(sum_vec, M[j][i], sum_vec, sample_size);
         }
         //find the min label
         double min = FLT_MAX;
@@ -361,25 +352,10 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
                 label_index = i;
             }
         }
-        label.push_back(label_index);
+        sample_label.push_back(label_index);
     }
-    delete[] new_vec;
-    delete[] sum_vec;
-    delete[] E_M_sum;
-    for (int i = 0; i < unknown_size; i++) {
-        delete[] isConverge[i];
-        delete[] E1[i];
-        for (int j = 0; j < unknown_size; j++) {
-            delete[]M[i][j];
-        }
-    }
-    delete[] isConverge;
-    delete[] E1;
-    for (int i = 0; i < unknown_size; i++) {
-        delete[]M[i];
-    }
-    delete[] M;
-    return label;
+
+    return sample_label;
 
 }
 
@@ -388,7 +364,7 @@ void StructurePropagation::mergeCurves(vector<bool>&isSingle) {
     int num_curves = pointlist.size();
 
     //begin to merge
-    for (int i = 0; i < num_curves; i++) {
+    for (int i = 0; i < num_curves - 1; i++) {
         if (unknown_anchors[i].size() == 0) {
             continue;
         }
@@ -399,6 +375,8 @@ void StructurePropagation::mergeCurves(vector<bool>&isSingle) {
             if (isIntersect(i, j)) {
                 isSingle[i] = false;
                 isSingle[j] = false;
+                int unknown_size = MIN(unknown_anchors[i].size(), unknown_anchors[j].size());
+                max_unknownsize = MAX(unknown_size, max_unknownsize);
                 //transfer the unknown anchor points
                 int num_points = pointlist[i].size();
                 int num_unknown_size = unknown_anchors[i].size();
@@ -409,6 +387,7 @@ void StructurePropagation::mergeCurves(vector<bool>&isSingle) {
                     //add the anchor point to the end of the first curve
                     for (int t = 0; t < unknown_anchors[j][anchor_index].neighbors.size(); t++) {
                         unknown_anchors[j][anchor_index].neighbors[t] += num_unknown_size;
+                        unknown_anchors[j][anchor_index].curve_index = i;
                     }
                     unknown_anchors[i].push_back(unknown_anchors[j][anchor_index]);
                 }
@@ -417,7 +396,7 @@ void StructurePropagation::mergeCurves(vector<bool>&isSingle) {
                     sample_anchors[j][sample_index].anchor_point += num_points;
                     sample_anchors[j][sample_index].begin_point += num_points;
                     sample_anchors[j][sample_index].end_point += num_points;
-
+                    sample_anchors[j][sample_index].curve_index = i;
                     sample_anchors[i].push_back(sample_anchors[j][sample_index]);
                 }
                 //transfer the real points
@@ -489,10 +468,15 @@ void StructurePropagation::Run(const Mat &mask, const Mat& img, Mat &mask_struct
     this->pointlist = plist;
     this->sample_anchors.clear();
     this->unknown_anchors.clear();
+    this->isSingle.resize(plist.size());
+    this->max_unknownsize = 0;
+    for (int i = 0; i < isSingle.size(); i++){
+        isSingle[i] = true;
+    }
     getAnchors();
     drawAnchors();
     int curve_size = plist.size();
-    vector<bool>isSingle(curve_size, true);
+//    vector<bool>isSingle(curve_size, true);
 
     mergeCurves(isSingle);
 
@@ -543,7 +527,6 @@ void StructurePropagation::getAnchors() {
         unknown.clear();
     }
     cout << endl;
-
 }
 
 bool StructurePropagation::isBorder(Point p, bool isSample) {
@@ -580,8 +563,6 @@ void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoin
         if (p.x - block_size / 2 < 0 || p.x + block_size / 2 >= img.cols || p.y - block_size / 2 < 0 || p.y + block_size / 2 >= img.rows){
             continue;
         }
-        uchar cur_point, next_point;
-        cur_point = mask.at<uchar>(pointlist[curve_index][cur_idx]);
         if (mask.at<uchar>(p) == 0) {
             border = isBorder(p, false);
             type = border ? BORDER : INNER;
@@ -590,8 +571,8 @@ void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoin
             border = isBorder(p, true);
             type = border ? BORDER : OUTER;
         }
-//        AnchorPoint anchor (cur_idx - block_size / 2, cur_idx + block_size / 2, cur_idx, type);
         AnchorPoint anchor (cur_idx, block_size, type, curve_index);
+        // unknown type
         if (type == BORDER || type == INNER) {
             if (cur_unknown - 1 >= 0) {
                 anchor.neighbors.push_back(cur_unknown - 1);
@@ -600,13 +581,14 @@ void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoin
             unknown.push_back(anchor);
             cur_unknown += 1;
         }
+        // sample type
         else {
             sample.push_back(anchor);
         }
     }
 }
 
-Mat StructurePropagation::getOnePatch(Point p,Mat &img) {
+Mat StructurePropagation::getOnePatch(Point p, Mat &img) {
     Mat patch;
     Point left_top = getLeftTopPoint(p);
     Point right_buttom = left_top + Point(block_size, block_size);
@@ -752,20 +734,16 @@ void StructurePropagation::TextureCompletion(Mat _mask, Mat LineMask, const Mat 
             }
         if (cnt == -1) break;
 
-        bool debug = false;
-        bool debug2 = false;
         int k0 = min(x, bs), k1 = min(N - 1 - x, bs);
         int l0 = min(y, bs), l1 = min(M - 1 - y, bs);
         int sx, sy, min_diff = INT_MAX;
-        for (int i = step; i + step < N; i += step)
-            for (int j = step; j + step < M; j += step)
-            {
+        for (int i = step; i + step < N; i += step) {
+            for (int j = step; j + step < M; j += step) {
                 if (usable[i][j] == 2)continue;
                 int tmp_diff = 0;
                 for (int k = -k0; k <= k1; k++)
                     for (int l = -l0; l <= l1; l++)
                     {
-                        //printf("%d %d %d %d %d %d\n", i + k, j + l, x + k, y + l, N, M);
                         if (my_mask[x + k][y + l] != 0)
 //                            tmp_diff += dist(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
                             tmp_diff += norm(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
@@ -778,44 +756,8 @@ void StructurePropagation::TextureCompletion(Mat _mask, Mat LineMask, const Mat 
                     min_diff = tmp_diff;
                 }
             }
-
-
-        if (debug)
-        {
-            printf("x = %d y = %d\n", x, y);
-            printf("sx = %d sy = %d\n", sx, sy);
-            printf("mindiff = %d\n", min_diff);
         }
-        if (debug2)
-        {
-            match = result.clone();
-        }
-        for (int k = -k0; k <= k1; k++)
-            for (int l = -l0; l <= l1; l++)
-                if (my_mask[x + k][y + l] == 0)
-                {
-                    result.at<Vec3b>(x + k, y + l) = result.at<Vec3b>(sx + k, sy + l);
-                    my_mask[x + k][y + l] = 1;
-                    filled++;
-                    if (debug)
-                    {
-                        result.at<Vec3b>(x + k, y + l) = Vec3b(255, 0, 0);
-                        result.at<Vec3b>(sx + k, sy + l) = Vec3b(0, 255, 0);
-                    }
-                    if (debug2)
-                    {
-                        match.at<Vec3b>(x + k, y + l) = Vec3b(255, 0, 0);
-                        match.at<Vec3b>(sx + k, sy + l) = Vec3b(0, 255, 0);
-                    }
-                }
-                else
-                {
-                    if (debug)
-                    {
-                        printf("(%d,%d,%d) matches (%d,%d,%d)\n", result.at<Vec3b>(x + k, y + l)[0], result.at<Vec3b>(x + k, y + l)[1], result.at<Vec3b>(x + k, y + l)[2], result.at<Vec3b>(sx + k, sy + l)[0], result.at<Vec3b>(sx + k, sy + l)[1], result.at<Vec3b>(sx + k, sy + l)[2]);
-                    }
-                }
-        if (debug) return;
+
         printf("done :%.2lf%%\n", 100.0 * filled / to_fill);
         imshow("run", result);
         waitKey(10);

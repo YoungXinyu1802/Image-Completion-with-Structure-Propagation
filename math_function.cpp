@@ -31,32 +31,32 @@
 //    return result;
 //}
 
-void initArray(double*a, int num) {
-    for (int i = 0; i < num; i++) {
-        a[i] = 0;
-    }
-}
-void initArray(int *a, int num) {
-    for (int i = 0; i < num; i++) {
-        a[i] = 0;
-    }
-}
-void initArray(bool*a, int num) {
-    for (int i = 0; i < num; i++) {
-        a[i] = false;
-    }
-}
+//void initArray(double*a, int num) {
+//    for (int i = 0; i < num; i++) {
+//        a[i] = 0;
+//    }
+//}
+//void initArray(int *a, int num) {
+//    for (int i = 0; i < num; i++) {
+//        a[i] = 0;
+//    }
+//}
+//void initArray(bool*a, int num) {
+//    for (int i = 0; i < num; i++) {
+//        a[i] = false;
+//    }
+//}
 
 void addArray(double*a, double*b, double*c, int num) {
     for (int i = 0; i < num; i++) {
         a[i] = a[i] + b[i];
     }
 }
-void minusArray(double*a, double*b, double *c, int num) {
-    for (int i = 0; i < num; i++) {
-        a[i] = a[i] - b[i];
-    }
-}
+//void minusArray(double*a, double*b, double *c, int num) {
+//    for (int i = 0; i < num; i++) {
+//        a[i] = a[i] - b[i];
+//    }
+//}
 bool isEqualArray(double *a, double*b, int num) {
     for (int i = 0; i < num; i++) {
         if (abs(a[i] - b[i]) > 1e-6) {
@@ -70,9 +70,9 @@ void moveArray(double*a, double*b, int num) {
         a[i] = b[i];
     }
 }
-bool contain(Rect &rec, Point &p) {
-    if (p.x >= rec.x&&p.x <= rec.x + rec.width && p.y >= rec.y&&p.y <= rec.y + rec.height) {
-        return true;
-    }
-    return false;
-}
+//bool contain(Rect &rec, Point &p) {
+//    if (p.x >= rec.x&&p.x <= rec.x + rec.width && p.y >= rec.y&&p.y <= rec.y + rec.height) {
+//        return true;
+//    }
+//    return false;
+//}

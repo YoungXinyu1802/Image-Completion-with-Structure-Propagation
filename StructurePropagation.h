@@ -16,8 +16,9 @@ private:
     int line_or_curve;
     double ks;
     double ki;
+    vector<bool>isSingle;
+    int max_unknownsize;
 
-    string path = "test_data/result/";
     /*
     the way to find the anchor point is that,from the first point on the curve,each turn we get the half number
     of points of the patch.
@@ -46,6 +47,7 @@ private:
     vector<int> BP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample, int curve_index);
     //to judge if two points are neighbor
     bool isNeighbor(Point point1, Point point2);
+
     bool isIntersect(int curve1, int curve2);
     //to find the intersecting curves and merge them into the first curve
     void mergeCurves(vector<bool>&isSingle);

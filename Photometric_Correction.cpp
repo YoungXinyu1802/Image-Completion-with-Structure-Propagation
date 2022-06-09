@@ -1,28 +1,9 @@
 #include"Photometric_Correction.h"
 
-Photometric_Correction::Photometric_Correction(Mat & mask)
-{
-    this->mask = mask.clone();
-    int rows = mask.rows;
-    int cols = mask.cols;
-
-}
-
-void Photometric_Correction::updateMask(Rect rec)
-{
-    mask(rec).setTo(255);
-}
-
-
-bool Photometric_Correction::inMask(Point2i p)
-{
-    return mask.at<uchar>(p.y, p.x) == 0;
-}
 
 Mat  Photometric_Correction::correct(Mat &patch, Mat &imgmask, Mat &resImg, Rect &rec)
 {
     Point2i left_top = Point2i(rec.x, rec.y);
-    Point2i right_down = left_top + Point2i(rec.width, rec.height);
     Mat dst = resImg(rec).clone();
     Mat src = patch.clone();
     Mat _mask = imgmask(rec).clone();
@@ -37,12 +18,6 @@ Mat  Photometric_Correction::correct(Mat &patch, Mat &imgmask, Mat &resImg, Rect
             }
         }
     }
-
-    //imshow("src", src);
-    //imshow("dst", dst);
-    //imshow("_mask", _mask);
-    //imshow("mask", mask);
-    //waitKey();
     for (int i = 0; i < dst.rows; i++) {
         for (int j = 0; j < dst.cols; j++) {
             if (_mask.at<uchar>(i, j) == 255) {
@@ -55,7 +30,7 @@ Mat  Photometric_Correction::correct(Mat &patch, Mat &imgmask, Mat &resImg, Rect
     re.width = rec.width - 1;
     re.height = rec.height - 1;
     _mask.setTo(255);
-    //waitKey();
+
     Mat blend;
     src = src(re).clone();
     seamlessClone(src, dst, _mask, Point(patch.cols / 2, patch.rows / 2), blend, NORMAL_CLONE);
