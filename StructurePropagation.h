@@ -42,7 +42,7 @@ private:
     double calE1(AnchorPoint unknown, AnchorPoint sample);
     double calE2(AnchorPoint unknown1, AnchorPoint unknown2, AnchorPoint sample1, AnchorPoint sample2);
 
-    vector<int> DP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample, int curve_index);
+    vector<int> DP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample);
     vector<int> BP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample, int curve_index);
     //to judge if two points are neighbor
     bool isNeighbor(Point point1, Point point2);
