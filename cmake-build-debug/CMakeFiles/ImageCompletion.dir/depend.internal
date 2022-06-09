@@ -651,7 +651,6 @@ CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj
  D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.cpp
  D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
  D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.h
- D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/param.h
  E:/opencv/opencv/build/x64/MinGW/cv_cpu_config.h
  E:/opencv/opencv/build/x64/MinGW/cvconfig.h
  E:/opencv/opencv/build/x64/MinGW/opencv2/opencv_modules.hpp
@@ -789,7 +788,6 @@ CMakeFiles/ImageCompletion.dir/main.cpp.obj
  D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.h
  D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
  D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/main.cpp
- D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/param.h
  E:/opencv/opencv/build/x64/MinGW/cv_cpu_config.h
  E:/opencv/opencv/build/x64/MinGW/cvconfig.h
  E:/opencv/opencv/build/x64/MinGW/opencv2/opencv_modules.hpp
@@ -924,7 +922,6 @@ CMakeFiles/ImageCompletion.dir/main.cpp.obj
 CMakeFiles/ImageCompletion.dir/math_function.cpp.obj
  D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.cpp
  D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.h
- D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/param.h
  E:/opencv/opencv/build/x64/MinGW/cv_cpu_config.h
  E:/opencv/opencv/build/x64/MinGW/cvconfig.h
  E:/opencv/opencv/build/x64/MinGW/opencv2/opencv_modules.hpp

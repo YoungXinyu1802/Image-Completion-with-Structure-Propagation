@@ -1,5 +1,5 @@
 #include"math_function.h"
-#include"param.h"
+//#include"param.h"
 #include<limits>
 //double calcuSSD(Mat m1, Mat m2) {
 //    if (m1.empty() || m2.empty()) {
@@ -59,7 +59,7 @@ void minusArray(double*a, double*b, double *c, int num) {
 }
 bool isEqualArray(double *a, double*b, int num) {
     for (int i = 0; i < num; i++) {
-        if (a[i] != b[i]) {
+        if (abs(a[i] - b[i]) > 1e-6) {
             return false;
         }
     }

@@ -15,18 +15,21 @@ double StructurePropagation::calSSD(Mat m1, Mat m2) {
         throw exception();
     }
     Mat result(1, 1, CV_32F);
+
+    // calculate the ssd of the overlap area
     matchTemplate(m1, m2, result, CV_TM_SQDIFF_NORMED);
     return result.at<double>(0, 0);
 }
 
 double StructurePropagation::calDistance(vector<Point>ci, vector<Point>cxi) {
-    double result = 0;
+    double dist = 0;
     double shortest, sq;
 
     double normalized = norm(Point(block_size, block_size));
 
+    // calculate the shortest distance between ci and cxi
     for (int i = 0; i < ci.size(); i++) {
-        shortest = FLT_MAX;
+        shortest = DBL_MAX;
         for (int j = 0; j < cxi.size(); j++) {
             sq = norm(ci[i] - cxi[j]) / normalized;
             sq *= sq;
@@ -34,16 +37,23 @@ double StructurePropagation::calDistance(vector<Point>ci, vector<Point>cxi) {
                 shortest = sq;
             }
         }
-        result += shortest;
+        dist += shortest;
     }
-    return result;
+    return dist;
 }
 
-double StructurePropagation::calEs(AnchorPoint unknown, AnchorPoint sample, int curve_index) {
+double StructurePropagation::calEs(AnchorPoint unknown, AnchorPoint sample) {
     vector<Point>ci, cxi;
     //the left_top point of the patches
-    Point origin_unknown = getLeftTopPoint(unknown.anchor_point, curve_index);
-    Point origin_sample = getLeftTopPoint(sample.anchor_point, curve_index);
+    if (unknown.curve_index != sample.curve_index) {
+        cout << "calEs error: not in the same curve" << endl;
+        throw exception();
+    }
+    int curve_index = unknown.curve_index;
+    Point p1 = pointlist[curve_index][unknown.anchor_point];
+    Point p2 = pointlist[curve_index][sample.anchor_point];
+    Point origin_unknown = getLeftTopPoint(p1);
+    Point origin_sample = getLeftTopPoint(p2);
 
     //to callate the relative coordinate of the point in the patch
     for (int i = unknown.begin_point; i <= unknown.end_point; i++) {
@@ -63,9 +73,16 @@ double StructurePropagation::calEs(AnchorPoint unknown, AnchorPoint sample, int 
     return result;
 }
 
-double StructurePropagation::calEi(AnchorPoint unknown, AnchorPoint sample, int curve_index) {
+double StructurePropagation::calEi(AnchorPoint unknown, AnchorPoint sample) {
+    if (unknown.curve_index != sample.curve_index) {
+        cout << "calEi error: not in the same curve" << endl;
+        throw exception();
+    }
+
     if (unknown.type != BORDER)
         return 0;
+
+    int curve_index = unknown.curve_index;
     Mat patch_image, patch_mask;
     Point p = pointlist[curve_index][unknown.anchor_point];
     getOnePatch(p, img).copyTo(patch_image);
@@ -82,25 +99,31 @@ double StructurePropagation::calEi(AnchorPoint unknown, AnchorPoint sample, int 
     return calSSD(unknown_mask, sample_mask);
 }
 
-double StructurePropagation::calE1(AnchorPoint unknown, AnchorPoint sample, int curve_index) {
-    //return KS * calEs(unknown, sample, curve_index) + KI * calEi(unknown, sample, curve_index);
-    double  Es = calEs(unknown, sample, curve_index);
-    double  Ei = calEi(unknown, sample, curve_index);
-    //cout << "Es=" << KS*Es << "  " << "Ei=" << KI*Ei << endl;
-    return ks * Es + ki * Ei;
+double StructurePropagation::calE1(AnchorPoint unknown, AnchorPoint sample) {
+    double  Es = calEs(unknown, sample);
+    double  Ei = calEi(unknown, sample);
+    double E1 = ks * Es + ki * Ei;
+    return E1;
 }
 
 
-double StructurePropagation::calE2(AnchorPoint unknown1, AnchorPoint unknown2, AnchorPoint sample1, AnchorPoint sample2, int curve_index) {
+double StructurePropagation::calE2(AnchorPoint unknown1, AnchorPoint unknown2, AnchorPoint sample1, AnchorPoint sample2) {
     //get the four vertexes of the two patches
-    Point ult = getLeftTopPoint(unknown1.anchor_point, curve_index);
-    Point urb = ult + Point(block_size, block_size);
+    if (unknown1.curve_index != sample1.curve_index) {
+        cout << "calE2 error: not in the same curve" << endl;
+        throw exception();
+    }
 
-    Point slt = getLeftTopPoint(unknown2.anchor_point, curve_index);
-    Point srb = slt + Point(block_size, block_size);
+    int curve_index = unknown1.curve_index;
 
-    Rect rec1(ult, srb);
-    Rect rec2(urb, slt);
+    Point u1_point = pointlist[curve_index][unknown1.anchor_point];
+    Point u1_lefttop = getLeftTopPoint(u1_point);
+    Rect rec1(u1_lefttop.x, u1_lefttop.y, unknown1.block_size, unknown1.block_size);
+
+    Point u2_point = pointlist[curve_index][unknown2.anchor_point];
+    Point u2_lefttop = getLeftTopPoint(u2_point);
+    Rect rec2(u2_lefttop.x, u2_lefttop.y, unknown2.block_size, unknown2.block_size);
+
     Rect intersect = rec1 & rec2;
 
     Mat patch1 = getOnePatch(getAnchorPoint(sample1, curve_index), img);
@@ -109,14 +132,13 @@ double StructurePropagation::calE2(AnchorPoint unknown1, AnchorPoint unknown2, A
     Mat copy1 = img.clone();
     Mat copy2 = img.clone();
     //overlap the srcimage with the corresponding sample patch
-    patch1.copyTo(copy1(Rect(ult, urb)));
-    patch2.copyTo(copy2(Rect(slt, srb)));
+    patch1.copyTo(copy1(rec1));
+    patch2.copyTo(copy2(rec2));
 
     double result;
     //callate the SSD of the overlap parts of two sample patches
     result = calSSD(copy1(intersect), copy2(intersect));
-    //for debug
-    //cout << "E2=" << result << endl;
+
     return result;
 }
 
@@ -143,7 +165,7 @@ vector<int> StructurePropagation::DP(vector<AnchorPoint>&unknown, vector<AnchorP
 
     for (int i = 0; i < unknown_size; i++) {
         for (int j = 0; j < sample_size; j++) {
-            E1[i][j] = calE1(unknown[i], sample[j], curve_index);
+            E1[i][j] = calE1(unknown[i], sample[j]);
         }
     }
     //initialize M[0]
@@ -158,7 +180,7 @@ vector<int> StructurePropagation::DP(vector<AnchorPoint>&unknown, vector<AnchorP
             double E_1 = E1[i][j];
             // find the sample anchor t to make the Mi to be mininum
             for (int t = 0; t < sample_size; t++) {
-                double tmp = calE2(unknown[i - 1], unknown[i], sample[t], sample[j], curve_index) + M[i - 1][t];
+                double tmp = calE2(unknown[i - 1], unknown[i], sample[t], sample[j]) + M[i - 1][t];
                 if (tmp < min) {
                     min = tmp;
                     min_index = t;
@@ -272,7 +294,7 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
     //to callate the matrix E1 for the convenience of the next callation
     for (int i = 0; i < unknown_size; i++) {
         for (int j = 0; j < sample_size; j++) {
-            E1[i][j] = calE1(unknown[i], sample[j], curve_index);
+            E1[i][j] = calE1(unknown[i], sample[j]);
         }
     }
 
@@ -314,7 +336,7 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
 //                    cout << "xj: " << xj << endl;
                     double min = FLT_MAX;
                     for (int xi = 0; xi < sample_size; xi++) {
-                        double E2 = calE2(unknown[node], unknown[neighbor_index], sample[xi], sample[xj], curve_index);
+                        double E2 = calE2(unknown[node], unknown[neighbor_index], sample[xi], sample[xj]);
                         double sum = E2 + E_M_sum[xi];
                         if (sum < min) {
                             min = sum;
@@ -443,7 +465,6 @@ void StructurePropagation::getOneNewCurve(vector<AnchorPoint>&unknown, vector<An
         throw exception();
     }
     for (int i = 0; i < unknown.size(); i++) {
-        cout << "patch: " << i << endl;
         Mat patch = getOnePatch(sample[label[i]], img, curve_index);
         copyPatchToImg(unknown[i], patch, result, curve_index);
     }
@@ -584,7 +605,8 @@ void StructurePropagation::getOneCurveAnchors(int curve_index, vector<AnchorPoin
             border = isBorder(p, true);
             type = border ? BORDER : OUTER;
         }
-        AnchorPoint anchor (cur_idx - block_size / 2, cur_idx + block_size / 2, cur_idx, type);
+//        AnchorPoint anchor (cur_idx - block_size / 2, cur_idx + block_size / 2, cur_idx, type);
+        AnchorPoint anchor (cur_idx, block_size, type, curve_index);
         if (type == BORDER || type == INNER) {
             if (cur_unknown - 1 >= 0) {
                 anchor.neighbors.push_back(cur_unknown - 1);
@@ -632,12 +654,12 @@ void StructurePropagation::copyPatchToImg(AnchorPoint unknown, Mat &patch, Mat &
     blend.copyTo(img(rec));
 }
 
-Point StructurePropagation::getLeftTopPoint(int point_index, int curve_index) {
-    Point p = pointlist[curve_index][point_index];
-    int x = (p.x - block_size / 2) > 0 ? p.x - block_size / 2 : 0;
-    int y = (p.y - block_size / 2) > 0 ? p.y - block_size / 2 : 0;
-    return Point(x, y);
-}
+//Point StructurePropagation::getLeftTopPoint(int point_index, int curve_index) {
+//    Point p = pointlist[curve_index][point_index];
+//    int x = (p.x - block_size / 2) > 0 ? p.x - block_size / 2 : 0;
+//    int y = (p.y - block_size / 2) > 0 ? p.y - block_size / 2 : 0;
+//    return Point(x, y);
+//}
 
 Point StructurePropagation::getLeftTopPoint(Point p) {
 
@@ -657,11 +679,11 @@ Rect StructurePropagation::getRect(AnchorPoint ap, int curve_index) {
     return Rect(left_top, right_down);
 }
 
-Rect StructurePropagation::getRect(Point p) {
-    Point left_top = p - Point(block_size / 2, block_size / 2);
-    Point right_down = left_top + Point(block_size, block_size);
-    return Rect(left_top, right_down);
-}
+//Rect StructurePropagation::getRect(Point p) {
+//    Point left_top = p - Point(block_size / 2, block_size / 2);
+//    Point right_down = left_top + Point(block_size, block_size);
+//    return Rect(left_top, right_down);
+//}
 
 int sqr(int x)
 {

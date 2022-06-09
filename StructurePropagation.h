@@ -27,8 +27,8 @@ private:
 
     void getOneCurveAnchors(int curve_index,vector<AnchorPoint>&unknown,vector<AnchorPoint>&sample);
 
-
-
+    //tool function
+    Point getLeftTopPoint(Point p);
     Point getAnchorPoint(AnchorPoint ap, int curve_index);
     Rect getRect(AnchorPoint ap, int curve_index);
 
@@ -37,10 +37,10 @@ private:
     void copyPatchToImg(AnchorPoint unknown, Mat &patch, Mat &img, int curve_index);
     bool isBorder(Point p, bool isSample);
 
-    double calEi(AnchorPoint unknown, AnchorPoint sample, int curve_index);
-    double calEs(AnchorPoint unknown, AnchorPoint sample, int curve_index);
-    double calE1(AnchorPoint unknown, AnchorPoint sample, int curve_index);
-    double calE2(AnchorPoint unknown1, AnchorPoint unknown2, AnchorPoint sample1, AnchorPoint sample2, int curve_index);
+    double calEi(AnchorPoint unknown, AnchorPoint sample);
+    double calEs(AnchorPoint unknown, AnchorPoint sample);
+    double calE1(AnchorPoint unknown, AnchorPoint sample);
+    double calE2(AnchorPoint unknown1, AnchorPoint unknown2, AnchorPoint sample1, AnchorPoint sample2);
 
     vector<int> DP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample, int curve_index);
     vector<int> BP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample, int curve_index);
@@ -70,10 +70,7 @@ public:
     void getAnchors();
     void drawAnchors();
 
-    //tool function
-    Point getLeftTopPoint(int point_index, int curve_index);
-    Point getLeftTopPoint(Point p);
-    Rect getRect(Point p);
+
 };
 
 #endif

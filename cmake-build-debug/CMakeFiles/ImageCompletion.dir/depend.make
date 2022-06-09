@@ -650,7 +650,6 @@ CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj: ../Photometric_Corr
 CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj: ../StructurePropagation.cpp
 CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj: ../StructurePropagation.h
 CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj: ../math_function.h
-CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj: ../param.h
 CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj: E:/opencv/opencv/build/x64/MinGW/cv_cpu_config.h
 CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj: E:/opencv/opencv/build/x64/MinGW/cvconfig.h
 CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj: E:/opencv/opencv/build/x64/MinGW/opencv2/opencv_modules.hpp
@@ -788,7 +787,6 @@ CMakeFiles/ImageCompletion.dir/main.cpp.obj: ../OpenCvUtility.h
 CMakeFiles/ImageCompletion.dir/main.cpp.obj: ../Photometric_Correction.h
 CMakeFiles/ImageCompletion.dir/main.cpp.obj: ../StructurePropagation.h
 CMakeFiles/ImageCompletion.dir/main.cpp.obj: ../main.cpp
-CMakeFiles/ImageCompletion.dir/main.cpp.obj: ../param.h
 CMakeFiles/ImageCompletion.dir/main.cpp.obj: E:/opencv/opencv/build/x64/MinGW/cv_cpu_config.h
 CMakeFiles/ImageCompletion.dir/main.cpp.obj: E:/opencv/opencv/build/x64/MinGW/cvconfig.h
 CMakeFiles/ImageCompletion.dir/main.cpp.obj: E:/opencv/opencv/build/x64/MinGW/opencv2/opencv_modules.hpp
@@ -923,7 +921,6 @@ CMakeFiles/ImageCompletion.dir/main.cpp.obj: E:/opencv/opencv/sources/modules/vi
 
 CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: ../math_function.cpp
 CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: ../math_function.h
-CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: ../param.h
 CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: E:/opencv/opencv/build/x64/MinGW/cv_cpu_config.h
 CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: E:/opencv/opencv/build/x64/MinGW/cvconfig.h
 CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: E:/opencv/opencv/build/x64/MinGW/opencv2/opencv_modules.hpp
