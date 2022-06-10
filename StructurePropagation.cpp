@@ -74,7 +74,7 @@ double StructurePropagation::calEs(AnchorPoint unknown, AnchorPoint sample) {
 }
 
 double StructurePropagation::calEi(AnchorPoint unknown, AnchorPoint sample) {
-    // Ei of the inner unknown AnchorPointes is set to 0
+    // Ei of the inner unknown AnchorPoints is set to 0
     if (unknown.type != BOUNDARY)
         return 0;
 
@@ -107,7 +107,6 @@ double StructurePropagation::calE1(AnchorPoint unknown, AnchorPoint sample) {
     double E1 = ks * Es + ki * Ei;
     return E1;
 }
-
 
 double StructurePropagation::calE2(AnchorPoint unknown1, AnchorPoint unknown2, AnchorPoint sample1, AnchorPoint sample2) {
     if (unknown1.curve_index != sample1.curve_index) {
@@ -208,7 +207,6 @@ vector<int> StructurePropagation::DP(vector<AnchorPoint>&unknown, vector<AnchorP
     return sample_label;
 }
 
-
 bool StructurePropagation::isNeighbor(Point p1, Point p2) {
     int x = abs(p1.x - p2.x);
     int y = abs(p1.y - p2.y);
@@ -229,10 +227,11 @@ bool StructurePropagation::isIntersect(int curve1, int curve2) {
             int p2 = unknown_anchors[curve2][j].anchor_point;
             Point point2 = pointlist[curve2][p2];
             if (isNeighbor(point1, point2)) {
+                // update neighbors of the anchor point in curve1 (add j and j+1 into it)
                 unknown_anchors[curve1][i].neighbors.push_back(j + num_curve1);
                 unknown_anchors[curve1][i].neighbors.push_back(j + 1 + num_curve1);
-                /*this means that the anchor point i will become the milddle point between j and j+1, so there will no path from j
-                to j+1 directly*/
+                // update neighbors of the anchor point j and j + 1 in curve2
+                // the neighbor of it should be updated to point1
                 if (j + 1 < unknown_anchors[curve2].size()) {
                     unknown_anchors[curve2][j].neighbors[1] = i - num_curve1;
                     unknown_anchors[curve2][j + 1].neighbors[0] = i - num_curve1;
@@ -240,7 +239,6 @@ bool StructurePropagation::isIntersect(int curve1, int curve2) {
                 else {
                     unknown_anchors[curve2][j].neighbors.push_back(i - num_curve1);
                 }
-
                 return true;
             }
         }
@@ -378,29 +376,31 @@ void StructurePropagation::mergeCurves() {
             if (unknown_anchors[j].size() == 0) {
                 continue;
             }
+            // merge intersected lines
             if (isIntersect(i, j)) {
                 isSingle[i] = false;
                 isSingle[j] = false;
+                // set the maximum distance of any two nodes in the unknown area
                 int unknown_size = MIN(unknown_anchors[i].size(), unknown_anchors[j].size());
                 max_unknownsize = MAX(unknown_size, max_unknownsize);
-                //transfer the unknown anchor points
+                // update the unknown anchor index (include the anchor_point, neighbor index and curve_index)
                 int num_points = pointlist[i].size();
                 int num_unknown_size = unknown_anchors[i].size();
-                for (int anchor_index = 0; anchor_index < unknown_anchors[j].size(); anchor_index++) {
-                    unknown_anchors[j][anchor_index].anchor_point += num_points;
-                    for (int t = 0; t < unknown_anchors[j][anchor_index].neighbors.size(); t++) {
-                        unknown_anchors[j][anchor_index].neighbors[t] += num_unknown_size;
-                        unknown_anchors[j][anchor_index].curve_index = i;
+                for (int unknown_index = 0; unknown_index < unknown_anchors[j].size(); unknown_index++) {
+                    unknown_anchors[j][unknown_index].anchor_point += num_points;
+                    for (int t = 0; t < unknown_anchors[j][unknown_index].neighbors.size(); t++) {
+                        unknown_anchors[j][unknown_index].neighbors[t] += num_unknown_size;
+                        unknown_anchors[j][unknown_index].curve_index = i;
                     }
-                    unknown_anchors[i].push_back(unknown_anchors[j][anchor_index]);
+                    unknown_anchors[i].push_back(unknown_anchors[j][unknown_index]);
                 }
-                //transfer the sample anchor points
+                // update the sample anchor index (include the anchor_point, neighbor index and curve_index)
                 for (int sample_index = 0; sample_index < sample_anchors[j].size(); sample_index++) {
                     sample_anchors[j][sample_index].anchor_point += num_points;
                     sample_anchors[j][sample_index].curve_index = i;
                     sample_anchors[i].push_back(sample_anchors[j][sample_index]);
                 }
-                //transfer the real points
+                // update the pointlist index
                 for (int point_index = 0; point_index < pointlist[j].size(); point_index++) {
                     pointlist[i].push_back(pointlist[j][point_index]);
                 }
@@ -594,10 +594,30 @@ Mat StructurePropagation::getOnePatch(AnchorPoint ap, Mat img, int curve_index) 
     return patch;
 }
 
+Mat StructurePropagation::PhotometricCorrection(Mat &patch, Mat &mask, Mat &img, Rect &rec) {
+    Mat dst = img(rec).clone();
+    Mat src = patch.clone();
+    Mat _mask = mask(rec).clone();
+
+    for (int i = 0; i < dst.rows; i++) {
+        for (int j = 0; j < dst.cols; j++) {
+            if (_mask.at<uchar>(i, j) == 0) {
+                dst.at<Vec3b>(i, j) = patch.at<Vec3b>(i, j);
+            }
+        }
+    }
+
+    Mat blend;
+    seamlessClone(src, dst, _mask, Point(patch.cols / 2, patch.rows / 2), blend, NORMAL_CLONE);
+    blend.copyTo(patch);
+    mask(rec).setTo(255);
+    return blend;
+}
+
 void StructurePropagation::copyPatchToImg(AnchorPoint unknown, Mat &patch, Mat &img, int curve_index) {
     Rect rec = getRect(unknown, curve_index);
     Mat correct_patch = patch.clone();
-    Mat blend=pc->correct(correct_patch, mask, img,rec);
+    Mat blend = PhotometricCorrection(correct_patch, mask, img, rec);
     blend.copyTo(img(rec));
 }
 
@@ -620,21 +640,21 @@ Rect StructurePropagation::getRect(AnchorPoint ap, int curve_index) {
 }
 
 
-void StructurePropagation::TextureCompletion(Mat _mask, Mat LineMask, const Mat &mat, Mat &result)
+void StructurePropagation::TextureCompletion(Mat mask, Mat LineMask, const Mat &mat, Mat &result)
 {
-    int N = _mask.rows;
-    int M = _mask.cols;
+    int N = mask.rows;
+    int M = mask.cols;
     int knowncount = 0;
-    for (int i = 0; i < N;i++)
-        for (int j = 0; j < M; j++)
-        {
-            knowncount += (_mask.at<uchar>(i, j) == 255);
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            knowncount += (mask.at<uchar>(i, j) == 255);
         }
-    if (knowncount * 2< N * M)
-    {
-        for (int i = 0; i < N;i++)
+    }
+
+    if (knowncount * 2 < N * M) {
+        for (int i = 0; i < N; i++)
             for (int j = 0; j < M; j++)
-                _mask.at<uchar>(i, j) = 255 - _mask.at<uchar>(i, j);
+                mask.at<uchar>(i, j) = 255 - mask.at<uchar>(i, j);
     }
 
     vector<vector<int> >my_mask(N, vector<int>(M, 0)), sum_diff(N, vector<int>(M, 0));
@@ -644,14 +664,10 @@ void StructurePropagation::TextureCompletion(Mat _mask, Mat LineMask, const Mat 
             LineMask.at<uchar>(i, j) = LineMask.at<uchar>(i, j) * 100;
 
     result = mat.clone();
-//    imshow("mask", _mask);
-//    imshow("linemask", LineMask);
     for (int i = 0; i < N; i++)
-        for (int j = 0; j < M; j++)
-        {
-            my_mask[i][j] = (_mask.at<uchar>(i, j) == 255);
-            if (my_mask[i][j] == 0 && LineMask.at<uchar>(i, j) > 0)
-            {
+        for (int j = 0; j < M; j++) {
+            my_mask[i][j] = (mask.at<uchar>(i, j) == 255);
+            if (my_mask[i][j] == 0 && LineMask.at<uchar>(i, j) > 0) {
                 my_mask[i][j] = 2;
             }
         }
@@ -675,7 +691,7 @@ void StructurePropagation::TextureCompletion(Mat _mask, Mat LineMask, const Mat 
                 for (int l = l0; l <= l1; l++)
                     usable[k][l] = 2;
         }
-    Mat use = _mask.clone();
+    Mat use = mask.clone();
     for (int i = 0; i < N; i++)
         for (int j = 0; j < M; j++)
             if (usable[i][j] == 2)

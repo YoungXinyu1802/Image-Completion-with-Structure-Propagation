@@ -133,18 +133,6 @@
 		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/OpenCvUtility.h">
 			<Option target="ImageCompletion"/>
 		</Unit>
-		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric.cpp">
-			<Option target="ImageCompletion"/>
-		</Unit>
-		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric.h">
-			<Option target="ImageCompletion"/>
-		</Unit>
-		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.cpp">
-			<Option target="ImageCompletion"/>
-		</Unit>
-		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.h">
-			<Option target="ImageCompletion"/>
-		</Unit>
 		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.cpp">
 			<Option target="ImageCompletion"/>
 		</Unit>

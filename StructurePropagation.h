@@ -1,8 +1,5 @@
 #ifndef STRUCTUREPROPAGATION_H
 #define STRUCTUREPROPAGATION_H
-//#include"Patch.h"
-//#include "Photometric.h"
-#include"Photometric_Correction.h"
 #include<opencv2\opencv.hpp>
 #include<vector>
 using namespace cv;
@@ -49,6 +46,7 @@ private:
     void copyPatchToImg(AnchorPoint unknown, Mat &patch, Mat &img, int curve_index);
     void getAnchors();
     void drawAnchors();
+    Mat PhotometricCorrection(Mat &patch, Mat &mask, Mat &img, Rect &rec);
 
     bool isBoundary(Point p, bool isSample);
     bool isNeighbor(Point point1, Point point2);
@@ -71,7 +69,6 @@ public:
     vector<vector<Point>> pointlist;
     vector<vector<AnchorPoint>> unknown_anchors;
     vector<vector<AnchorPoint>> sample_anchors;
-    Photometric_Correction *pc;
     StructurePropagation() = default;
     void SetParam(int block_size, int sample_step, int line_or_curve, double ks, double ki);
     void Run(const Mat &mask, const Mat& img, Mat &mask_structure, vector<vector<Point>> &plist, Mat& result);

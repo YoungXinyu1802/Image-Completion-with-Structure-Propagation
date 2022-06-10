@@ -6,10 +6,14 @@
 
 #IncludeRegexTransform: 
 
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.h
-opencv2/opencv.hpp
--
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/OpenCvUtility.h
 iostream
+-
+fstream
+-
+vector
+-
+opencv2/opencv.hpp
 -
 
 D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.cpp
@@ -21,12 +25,22 @@ Eigen/Sparse
 -
 
 D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
-Photometric_Correction.h
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/Photometric_Correction.h
 opencv2/opencv.hpp
 -
 vector
 -
+
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/main.cpp
+iostream
+-
+vector
+-
+opencv2/opencv.hpp
+-
+StructurePropagation.h
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/StructurePropagation.h
+OpenCvUtility.h
+D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/OpenCvUtility.h
 
 E:/eigen/eigen-3.4.0/eigen-3.4.0/Eigen/Core
 src/Core/util/DisableStupidWarnings.h
