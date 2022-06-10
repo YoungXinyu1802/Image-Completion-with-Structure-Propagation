@@ -4,7 +4,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj"
   "CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj"
   "CMakeFiles/ImageCompletion.dir/main.cpp.obj"
-  "CMakeFiles/ImageCompletion.dir/math_function.cpp.obj"
   "ImageCompletion.exe"
   "ImageCompletion.exe.manifest"
   "ImageCompletion.pdb"

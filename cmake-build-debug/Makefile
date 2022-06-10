@@ -277,33 +277,6 @@ main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/main.cpp.s
 .PHONY : main.cpp.s
 
-math_function.obj: math_function.cpp.obj
-
-.PHONY : math_function.obj
-
-# target to build an object file
-math_function.cpp.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/math_function.cpp.obj
-.PHONY : math_function.cpp.obj
-
-math_function.i: math_function.cpp.i
-
-.PHONY : math_function.i
-
-# target to preprocess a source file
-math_function.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/math_function.cpp.i
-.PHONY : math_function.cpp.i
-
-math_function.s: math_function.cpp.s
-
-.PHONY : math_function.s
-
-# target to generate assembly for a file
-math_function.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\ImageCompletion.dir\build.make CMakeFiles/ImageCompletion.dir/math_function.cpp.s
-.PHONY : math_function.cpp.s
-
 # Help Target
 help:
 	@echo The following are some of the valid targets for this Makefile:
@@ -328,9 +301,6 @@ help:
 	@echo ... main.obj
 	@echo ... main.i
 	@echo ... main.s
-	@echo ... math_function.obj
-	@echo ... math_function.i
-	@echo ... math_function.s
 .PHONY : help
 
 

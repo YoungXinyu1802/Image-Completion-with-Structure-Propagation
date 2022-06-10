@@ -118,24 +118,10 @@ CMakeFiles/ImageCompletion.dir/OpenCvUtility.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ImageCompletion.dir/OpenCvUtility.cpp.s"
 	E:\minGW\x86_64-8.1.0-release-posix-seh-rt_v6-rev0\mingw64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\OpenCvUtility.cpp" -o CMakeFiles\ImageCompletion.dir\OpenCvUtility.cpp.s
 
-CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: CMakeFiles/ImageCompletion.dir/flags.make
-CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: CMakeFiles/ImageCompletion.dir/includes_CXX.rsp
-CMakeFiles/ImageCompletion.dir/math_function.cpp.obj: ../math_function.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\cmake-build-debug\CMakeFiles" --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/ImageCompletion.dir/math_function.cpp.obj"
-	E:\minGW\x86_64-8.1.0-release-posix-seh-rt_v6-rev0\mingw64\bin\g++.exe  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles\ImageCompletion.dir\math_function.cpp.obj -c "D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\math_function.cpp"
-
-CMakeFiles/ImageCompletion.dir/math_function.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ImageCompletion.dir/math_function.cpp.i"
-	E:\minGW\x86_64-8.1.0-release-posix-seh-rt_v6-rev0\mingw64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E "D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\math_function.cpp" > CMakeFiles\ImageCompletion.dir\math_function.cpp.i
-
-CMakeFiles/ImageCompletion.dir/math_function.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ImageCompletion.dir/math_function.cpp.s"
-	E:\minGW\x86_64-8.1.0-release-posix-seh-rt_v6-rev0\mingw64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\math_function.cpp" -o CMakeFiles\ImageCompletion.dir\math_function.cpp.s
-
 CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj: CMakeFiles/ImageCompletion.dir/flags.make
 CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj: CMakeFiles/ImageCompletion.dir/includes_CXX.rsp
 CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj: ../Photometric.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\cmake-build-debug\CMakeFiles" --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\cmake-build-debug\CMakeFiles" --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj"
 	E:\minGW\x86_64-8.1.0-release-posix-seh-rt_v6-rev0\mingw64\bin\g++.exe  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles\ImageCompletion.dir\Photometric.cpp.obj -c "D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\Photometric.cpp"
 
 CMakeFiles/ImageCompletion.dir/Photometric.cpp.i: cmake_force
@@ -149,7 +135,7 @@ CMakeFiles/ImageCompletion.dir/Photometric.cpp.s: cmake_force
 CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj: CMakeFiles/ImageCompletion.dir/flags.make
 CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj: CMakeFiles/ImageCompletion.dir/includes_CXX.rsp
 CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj: ../Photometric_Correction.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\cmake-build-debug\CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\cmake-build-debug\CMakeFiles" --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj"
 	E:\minGW\x86_64-8.1.0-release-posix-seh-rt_v6-rev0\mingw64\bin\g++.exe  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles\ImageCompletion.dir\Photometric_Correction.cpp.obj -c "D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\Photometric_Correction.cpp"
 
 CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.i: cmake_force
@@ -165,7 +151,6 @@ ImageCompletion_OBJECTS = \
 "CMakeFiles/ImageCompletion.dir/main.cpp.obj" \
 "CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj" \
 "CMakeFiles/ImageCompletion.dir/OpenCvUtility.cpp.obj" \
-"CMakeFiles/ImageCompletion.dir/math_function.cpp.obj" \
 "CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj" \
 "CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj"
 
@@ -175,7 +160,6 @@ ImageCompletion_EXTERNAL_OBJECTS =
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/main.cpp.obj
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/StructurePropagation.cpp.obj
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/OpenCvUtility.cpp.obj
-ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/math_function.cpp.obj
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/Photometric.cpp.obj
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/Photometric_Correction.cpp.obj
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/build.make
@@ -199,7 +183,7 @@ ImageCompletion.exe: E:/opencv/opencv/build/x64/MinGW/lib/libopencv_core345.dll.
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/linklibs.rsp
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/objects1.rsp
 ImageCompletion.exe: CMakeFiles/ImageCompletion.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir="D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\cmake-build-debug\CMakeFiles" --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable ImageCompletion.exe"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir="D:\Clion\Computer photography\Image-Completion-with-Structure-Propagation\cmake-build-debug\CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable ImageCompletion.exe"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\ImageCompletion.dir\link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

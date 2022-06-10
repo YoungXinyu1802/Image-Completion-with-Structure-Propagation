@@ -154,12 +154,6 @@
 		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/main.cpp">
 			<Option target="ImageCompletion"/>
 		</Unit>
-		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.cpp">
-			<Option target="ImageCompletion"/>
-		</Unit>
-		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/math_function.h">
-			<Option target="ImageCompletion"/>
-		</Unit>
 		<Unit filename="D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>

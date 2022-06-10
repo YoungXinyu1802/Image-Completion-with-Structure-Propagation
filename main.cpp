@@ -4,14 +4,9 @@
 #include "StructurePropagation.h"
 #include "OpenCvUtility.h"
 
-//#include "TextureCompletion.h"
-
 using namespace std;
 using namespace cv;
 
-#define NUM_OF_IMAGES 7
-#define USER_DRAW_MASK 0
-#define PRE_MADE_MASK 1
 #define LINE_STRUCTURE 0
 #define CURVE_STRUCTURE 1
 
@@ -42,134 +37,110 @@ int sample_step = 10;
 int line_or_curve = LINE_STRUCTURE;
 int points_i=0;
 
-void get_input_image();
-void get_input_mask(int mask_from);
+void getImage();
+void getMask();
 static void callback_draw_mask(int event, int x, int y, int flags, void* param);
-void make_masked_image();
-void show_interface();
+void showInterface();
 static void callback_draw_structure(int event, int x, int y, int flags, void* param);
 
-int main(int argc, char* argv[])
-{
-    get_input_image();
-    get_input_mask(USER_DRAW_MASK);
-    make_masked_image();
-    show_interface();
+int main(int argc, char* argv[]) {
+    getImage();
+    getMask();
+    showInterface();
     return 0;
 }
 
-/**
- * Choose one of the original images as input.
- * Press Key '[' to switch to last one, and Key ']' to switch to next one.
- * Press Key 'esc' to confirm the choice.
- */
-void get_input_image()
-{
-    img = imread("test_data/img" + to_string(img_current) + ".png", 1);
-    imshow("img", img);
+
+void getImage() {
+    cout << "Choosing images..." << endl;
+    string img_path = "test_data/img/";
+    vector<cv::String> files;
+    // get the number of images in the directory
+    cv::glob(img_path, files, false);
+    int img_num = files.size();
+    img_current = 0;
     char k = waitKey(0);
-    cout << "choose images" << endl;
-    while (k != 27)
-    {
+    img = imread(img_path + "img" + to_string(img_current) + ".png", 1);
+    imshow("img", img);
+    // 27: escape key
+    while (k != 27) {
         // last image
-        if (k == '[')
-        {
-            img_current = (img_current + NUM_OF_IMAGES - 1) % NUM_OF_IMAGES;
+        if (k == '[') {
+            img_current = (img_current + img_num - 1) % img_num;
         }
             // next image
-        else if (k == ']')
-        {
-            img_current = (img_current + 1) % NUM_OF_IMAGES;
+        else if (k == ']') {
+            img_current = (img_current + 1) % img_num;
         }
-        img = imread("test_data/img" + to_string(img_current) + ".png", 1);
+        img = imread(img_path + "img" + to_string(img_current) + ".png", 1);
         imshow("img", img);
         k = waitKey(0);
     }
     destroyAllWindows();
 }
 
-/**
- * Get a mask for the region of interest from the input image.
- * If user draws the mask,
- *      press Key '[' to get a smaller brush, and Key ']' to get a larger brush;
- *      press Key 'esc' to save the mask, and Key 'r' to reset.
- */
-void get_input_mask(int mask_from)
-{
-    // user draws the mask
-    if (mask_from == USER_DRAW_MASK)
-    {
-        mask = Mat::zeros(img.rows, img.cols, CV_8UC1);
-        draw_mask = img.clone();
-        show_brush = draw_mask.clone();
-        brush_size = 30;
-        prev_pt = Point(-1, -1);
+void getMask() {
+    mask = Mat::zeros(img.rows, img.cols, CV_8UC1);
+    draw_mask = img.clone();
+    show_brush = draw_mask.clone();
+    brush_size = 20;
+    prev_pt = Point(-1, -1);
 
-        namedWindow("draw mask");
-        imshow("draw mask", show_brush);
-        setMouseCallback("draw mask", callback_draw_mask);
+    namedWindow("draw mask");
+    imshow("draw mask", show_brush);
+    setMouseCallback("draw mask", callback_draw_mask);
 
-        char k = waitKey(0);
-        while (k != 27)
-        {
-            // reset
-            if (k == 'r')
-            {
-                mask = Mat::zeros(img.rows, img.cols, CV_8UC1);
-                draw_mask = img.clone();
-                prev_pt = Point(-1, -1);
+    char k = waitKey(0);
+    while (k != 27) {
+        if (k == '[') {
+            if (brush_size > 1) {
+                brush_size--;
             }
-                // smaller brush
-            else if (k == '[')
-            {
-                if (brush_size > 1)
-                {
-                    brush_size--;
-                }
-            }
-                // larger brush
-            else if (k == ']')
-            {
-                if (brush_size < 40)
-                {
-                    brush_size++;
-                }
-            }
-
-            show_brush = draw_mask.clone();
-            circle(show_brush, pt, brush_size, Scalar(255, 0, 255), -1);
-            imshow("draw mask", show_brush);
-
-            k = waitKey(0);
         }
-    }
-        // load pre-made mask
-    else if (mask_from == PRE_MADE_MASK)
-    {
-        mask = imread("mask" + to_string(img_current) + ".bmp", 0);
+        // larger brush
+        else if (k == ']') {
+            if (brush_size < 40) {
+                brush_size++;
+            }
+        }
+
+        // enter key: use default mask
+        else if (k == 13) {
+            mask = imread("test_data/mask/mask" + to_string(img_current) + ".png", 0);
+            break;
+        }
+
+        // reset
+        else if (k == 'r') {
+            mask = Mat::zeros(img.rows, img.cols, CV_8UC1);
+            draw_mask = img.clone();
+            prev_pt = Point(-1, -1);
+        }
+
+        show_brush = draw_mask.clone();
+        circle(show_brush, pt, brush_size, Scalar(255, 0, 255), -1);
+        imshow("draw mask", show_brush);
+
+        k = waitKey(0);
     }
     threshold(mask, mask_inv, 100, 255, CV_THRESH_BINARY_INV);
     destroyAllWindows();
+    img_masked = Mat::zeros(img.size(), CV_8UC3);
+    img.copyTo(img_masked, mask_inv);
 }
 
-/**
- * Mouse callback function for drawing the mask.
- */
-static void callback_draw_mask(int event, int x, int y, int flags, void* param)
-{
+
+static void callback_draw_mask(int event, int x, int y, int flags, void* param) {
     pt = Point(x, y);
-    if ((event == CV_EVENT_MOUSEMOVE && (flags & CV_EVENT_FLAG_LBUTTON)) || event == CV_EVENT_LBUTTONDOWN)
-    {
-        if (prev_pt.x == -1)
-        {
+    if ((event == CV_EVENT_MOUSEMOVE && (flags & CV_EVENT_FLAG_LBUTTON)) || event == CV_EVENT_LBUTTONDOWN) {
+        if (prev_pt.x == -1) {
             prev_pt = pt;
         }
         line(mask, prev_pt, pt, Scalar(255), 2 * brush_size);
         line(draw_mask, prev_pt, pt, Scalar(255, 0, 0), 2 * brush_size);
         prev_pt = pt;
     }
-    else if (event == CV_EVENT_LBUTTONUP)
-    {
+    else if (event == CV_EVENT_LBUTTONUP) {
         prev_pt = Point(-1, -1);
     }
 
@@ -194,8 +165,7 @@ void make_masked_image()
  * Press Key 'r' to reset, and Key 'a' to save.
  * Press Key 'e' to show curve points.
  */
-void show_interface()
-{
+void showInterface() {
     prev_pt = Point(-1, -1);
     sp_result = img_masked.clone();
     draw_structure = img_masked.clone();
