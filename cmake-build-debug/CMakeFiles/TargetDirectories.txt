@@ -1,3 +1,0 @@
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/edit_cache.dir
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/ImageCompletion.dir
-D:/Clion/Computer photography/Image-Completion-with-Structure-Propagation/cmake-build-debug/CMakeFiles/rebuild_cache.dir

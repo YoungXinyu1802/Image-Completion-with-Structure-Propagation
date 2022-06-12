@@ -72,7 +72,7 @@ public:
     StructurePropagation() = default;
     void SetParam(int block_size, int sample_step, int line_or_curve, double ks, double ki);
     void Run(const Mat &mask, const Mat& img, Mat &mask_structure, vector<vector<Point>> &plist, Mat& result);
-    void TextureCompletion(Mat _mask, Mat LineMask, const Mat &mat, Mat &result);
+    void TextureCompletion(Mat _mask, Mat structureLine, const Mat &mat, Mat &result);
 };
 
 #endif

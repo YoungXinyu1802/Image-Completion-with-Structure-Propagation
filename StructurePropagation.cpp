@@ -124,6 +124,7 @@ double StructurePropagation::calE2(AnchorPoint unknown1, AnchorPoint unknown2, A
     Point u2_lefttop = getLeftTopPoint(u2_point);
     Rect rec2(u2_lefttop.x, u2_lefttop.y, unknown2.block_size, unknown2.block_size);
 
+    // get the overlap area
     Rect intersect = rec1 & rec2;
 
     Mat patch1 = getOnePatch(getPatch(sample1, curve_index), img);
@@ -144,11 +145,12 @@ double StructurePropagation::calE2(AnchorPoint unknown1, AnchorPoint unknown2, A
 
 
 vector<int> StructurePropagation::DP(vector<AnchorPoint>&unknown, vector<AnchorPoint>&sample) {
+    cout << "start DP ..." << endl;
     int unknown_size = unknown.size();
     int sample_size = sample.size();
 
     if (unknown_size == 0 || sample_size == 0) {
-        cout << "In DP: the size of vector Patch is 0" << endl;
+        cout << "DP exception" << endl;
         throw exception();
     }
 
@@ -203,7 +205,11 @@ vector<int> StructurePropagation::DP(vector<AnchorPoint>&unknown, vector<AnchorP
             sample_label.insert(sample_label.begin(), last_patch);
         }
     }
-
+    for (int i = 0; i < unknown_size; i++) {
+        cout << sample_label[i] << ' ';
+    }
+    cout << endl;
+    cout << "finish DP" << endl;
     return sample_label;
 }
 
@@ -361,6 +367,7 @@ vector<int> StructurePropagation::BP(vector<AnchorPoint>&unknown, vector<AnchorP
         cout << sample_label[i] << " ";
     }
 
+    cout << "finish BP" << endl;
     return sample_label;
 }
 
@@ -380,6 +387,11 @@ void StructurePropagation::mergeCurves() {
             if (isIntersect(i, j)) {
                 isSingle[i] = false;
                 isSingle[j] = false;
+                // update the pointlist index
+                for (int point_index = 0; point_index < pointlist[j].size(); point_index++) {
+                    pointlist[i].push_back(pointlist[j][point_index]);
+                }
+                pointlist[j].clear();
                 // set the maximum distance of any two nodes in the unknown area
                 int unknown_size = MIN(unknown_anchors[i].size(), unknown_anchors[j].size());
                 max_unknownsize = MAX(unknown_size, max_unknownsize);
@@ -388,26 +400,20 @@ void StructurePropagation::mergeCurves() {
                 int num_unknown_size = unknown_anchors[i].size();
                 for (int unknown_index = 0; unknown_index < unknown_anchors[j].size(); unknown_index++) {
                     unknown_anchors[j][unknown_index].anchor_point += num_points;
-                    for (int t = 0; t < unknown_anchors[j][unknown_index].neighbors.size(); t++) {
-                        unknown_anchors[j][unknown_index].neighbors[t] += num_unknown_size;
-                        unknown_anchors[j][unknown_index].curve_index = i;
+                    unknown_anchors[j][unknown_index].curve_index = i;
+                    for (auto & n: unknown_anchors[j][unknown_index].neighbors) {
+                        n += num_unknown_size;
                     }
                     unknown_anchors[i].push_back(unknown_anchors[j][unknown_index]);
                 }
+                unknown_anchors[j].clear();
                 // update the sample anchor index (include the anchor_point, neighbor index and curve_index)
                 for (int sample_index = 0; sample_index < sample_anchors[j].size(); sample_index++) {
                     sample_anchors[j][sample_index].anchor_point += num_points;
                     sample_anchors[j][sample_index].curve_index = i;
                     sample_anchors[i].push_back(sample_anchors[j][sample_index]);
                 }
-                // update the pointlist index
-                for (int point_index = 0; point_index < pointlist[j].size(); point_index++) {
-                    pointlist[i].push_back(pointlist[j][point_index]);
-                }
-
-                unknown_anchors[j].clear();
                 sample_anchors[j].clear();
-                pointlist[j].clear();
             }
         }
     }
@@ -479,8 +485,7 @@ void StructurePropagation::Run(const Mat &mask, const Mat& img, Mat &mask_struct
     }
 
     // update mask (mark the unknown mask to known)
-    for (int i = 0; i < unknown_anchors.size(); i++)
-    {
+    for (int i = 0; i < unknown_anchors.size(); i++) {
         for (auto p : unknown_anchors[i]){
             Point tar = pointlist[i][p.anchor_point];
             for (int j = -block_size / 2; j < block_size / 2; j++)
@@ -586,28 +591,38 @@ Mat StructurePropagation::getOnePatch(Point p, Mat img) {
 Mat StructurePropagation::getOnePatch(AnchorPoint ap, Mat img, int curve_index) {
     Mat patch;
     Rect rec = getRect(ap, curve_index);
-    if (rec.x<0 || rec.y<0 || rec.x + rec.width>img.cols || rec.y + rec.height>img.rows) {
-        cout << "exception:" << rec.x << "   " << rec.y << "when getting one patch" << endl;
+    if (rec.x<0 || rec.y<0 || rec.x + rec.width > img.cols || rec.y + rec.height > img.rows) {
+        cout << "getOnePatch exception:" << rec.x << " " << rec.y << endl;
         throw exception();
     }
     img(rec).copyTo(patch);
     return patch;
 }
 
+
+
 Mat StructurePropagation::PhotometricCorrection(Mat &patch, Mat &mask, Mat &img, Rect &rec) {
     Mat dst = img(rec).clone();
     Mat src = patch.clone();
     Mat _mask = mask(rec).clone();
 
+    threshold(mask(rec), _mask, 100, 255, CV_THRESH_BINARY_INV);
+
     for (int i = 0; i < dst.rows; i++) {
         for (int j = 0; j < dst.cols; j++) {
-            if (_mask.at<uchar>(i, j) == 0) {
+            if (_mask.at<uchar>(i, j) == 255) {
                 dst.at<Vec3b>(i, j) = patch.at<Vec3b>(i, j);
             }
         }
     }
+    Rect re;
+    re.x = 1; re.y = 1;
+    re.width = rec.width - 1;
+    re.height = rec.height - 1;
+    _mask.setTo(255);
 
     Mat blend;
+    src = src(re).clone();
     seamlessClone(src, dst, _mask, Point(patch.cols / 2, patch.rows / 2), blend, NORMAL_CLONE);
     blend.copyTo(patch);
     mask(rec).setTo(255);
@@ -640,122 +655,115 @@ Rect StructurePropagation::getRect(AnchorPoint ap, int curve_index) {
 }
 
 
-void StructurePropagation::TextureCompletion(Mat mask, Mat LineMask, const Mat &mat, Mat &result)
-{
-    int N = mask.rows;
-    int M = mask.cols;
-    int knowncount = 0;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < M; j++) {
-            knowncount += (mask.at<uchar>(i, j) == 255);
-        }
-    }
+void StructurePropagation::TextureCompletion(Mat _mask, Mat structureLine, const Mat &mat, Mat &result) {
+    cout << "TextureCompletion..." << endl;
+    int N = _mask.rows;
+    int M = _mask.cols;
 
-    if (knowncount * 2 < N * M) {
-        for (int i = 0; i < N; i++)
-            for (int j = 0; j < M; j++)
-                mask.at<uchar>(i, j) = 255 - mask.at<uchar>(i, j);
-    }
-
-    vector<vector<int> >my_mask(N, vector<int>(M, 0)), sum_diff(N, vector<int>(M, 0));
-
-    for (int i = 0; i < N;i++)
-        for (int j = 0; j < M; j++)
-            LineMask.at<uchar>(i, j) = LineMask.at<uchar>(i, j) * 100;
+    threshold(_mask, _mask, 100, 255, THRESH_BINARY_INV);
+    vector<vector<int> >my_mask(N, vector<int>(M, 0));
 
     result = mat.clone();
-    for (int i = 0; i < N; i++)
+
+    for (int i = 0; i < N; i++) {
         for (int j = 0; j < M; j++) {
-            my_mask[i][j] = (mask.at<uchar>(i, j) == 255);
-            if (my_mask[i][j] == 0 && LineMask.at<uchar>(i, j) > 0) {
+            my_mask[i][j] = (_mask.at<uchar>(i, j) == 255);
+            if (my_mask[i][j] == 0 && structureLine.at<uchar>(i, j) > 0) {
                 my_mask[i][j] = 2;
             }
         }
-    int bs = 5;
-    int step = 1 * bs;
-    auto usable(my_mask);
-    int to_fill = 0, filled = 0;
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < M; j++)
-        {
-            to_fill += (my_mask[i][j] == 0);
-        }
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < M; j++)
-        {
-            if (my_mask[i][j] == 1)
+    }
+
+    int step = 10;
+    auto record(my_mask);
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            if (my_mask[i][j] == 1) {
                 continue;
+            }
             int k0 = max(0, i - step), k1 = min(N - 1, i + step);
             int l0 = max(0, j - step), l1 = min(M - 1, j + step);
-            for (int k = k0; k <= k1; k++)
-                for (int l = l0; l <= l1; l++)
-                    usable[k][l] = 2;
+            // record the structure line
+            for (int k = k0; k <= k1; k++) {
+                for (int l = l0; l <= l1; l++) {
+                    record[k][l] = 2;
+                }
+            }
         }
-    Mat use = mask.clone();
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < M; j++)
-            if (usable[i][j] == 2)
-                use.at<uchar>(i, j) = 255;
-            else use.at<uchar>(i, j) = 0;
-//    imshow("usable", use);
-    int itertime = 0;
-    Mat match;
-    while (true)
-    {
-        itertime++;
+    }
+
+    while (true) {
         int x, y, cnt = -1;
-        for (int i = 0; i < N; i++)
-            for (int j = 0; j < M; j++)
-            {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < M; j++) {
                 if (my_mask[i][j] != 0) continue;
+                // find the edge
                 bool edge = false;
                 int k0 = max(0, i - 1), k1 = min(N - 1, i + 1);
                 int l0 = max(0, j - 1), l1 = min(M - 1, j + 1);
-                for (int k = k0; k <= k1;k++)
-                    for (int l = l0; l <= l1; l++)
+                for (int k = k0; k <= k1;k++) {
+                    for (int l = l0; l <= l1; l++) {
                         edge |= (my_mask[k][l] == 1);
+                    }
+                }
+
                 if (!edge) continue;
-                k0 = max(0, i - bs), k1 = min(N - 1, i + bs);
-                l0 = max(0, j - bs), l1 = min(M - 1, j + bs);
+                k0 = max(0, i - step), k1 = min(N - 1, i + step);
+                l0 = max(0, j - step), l1 = min(M - 1, j + step);
                 int tmpcnt = 0;
-                for (int k = k0; k <= k1; k++)
-                    for (int l = l0; l <= l1; l++)
+                for (int k = k0; k <= k1; k++) {
+                    for (int l = l0; l <= l1; l++) {
                         tmpcnt += (my_mask[k][l] == 1);
-                if (tmpcnt > cnt)
-                {
+                    }
+                }
+                if (tmpcnt > cnt) {
                     cnt = tmpcnt;
                     x = i;
                     y = j;
                 }
             }
+        }
+
+        // finish filling
         if (cnt == -1) break;
 
-        int k0 = min(x, bs), k1 = min(N - 1 - x, bs);
-        int l0 = min(y, bs), l1 = min(M - 1 - y, bs);
+        int k0 = min(x, step), k1 = min(N - 1 - x, step);
+        int l0 = min(y, step), l1 = min(M - 1 - y, step);
         int sx, sy, min_diff = INT_MAX;
-        for (int i = step; i + step < N; i += step) {
+        // find the optimal patch
+        for (int i = step; i + step < N; i += step)
             for (int j = step; j + step < M; j += step) {
-                if (usable[i][j] == 2)continue;
+                // skip the structure line
+                if (record[i][j] == 2) continue;
                 int tmp_diff = 0;
-                for (int k = -k0; k <= k1; k++)
-                    for (int l = -l0; l <= l1; l++)
-                    {
+                // find the patch with minimum difference
+                for (int k = -k0; k <= k1; k++) {
+                    for (int l = -l0; l <= l1; l++) {
                         if (my_mask[x + k][y + l] != 0)
-//                            tmp_diff += dist(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
                             tmp_diff += norm(result.at<Vec3b>(i + k, j + l), result.at<Vec3b>(x + k, y + l));
                     }
-                sum_diff[i][j] = tmp_diff;
-                if (min_diff > tmp_diff)
-                {
+                }
+                // update
+                if (min_diff > tmp_diff) {
                     sx = i;
                     sy = j;
                     min_diff = tmp_diff;
                 }
             }
+
+        // fill the mask
+        for (int k = -k0; k <= k1; k++) {
+            for (int l = -l0; l <= l1; l++) {
+                if (my_mask[x + k][y + l] == 0) {
+                    result.at<Vec3b>(x + k, y + l) = result.at<Vec3b>(sx + k, sy + l);
+                    my_mask[x + k][y + l] = 1;
+                }
+            }
         }
 
-        printf("done :%.2lf%%\n", 100.0 * filled / to_fill);
         imshow("run", result);
         waitKey(10);
     }
+    cout << "finish TextureCompletion" << endl;
 }

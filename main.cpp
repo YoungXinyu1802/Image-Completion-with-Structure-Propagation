@@ -22,7 +22,7 @@ Mat img_masked;
 Mat draw_structure;
 Mat mask_structure;
 Mat sp_result;
-Mat ts_result;
+Mat tp_result;
 Point pt;
 Point prev_pt;
 Point points[2] = {Point(-1, -1), Point(-1, -1)};
@@ -97,20 +97,20 @@ void getMask() {
                 brush_size--;
             }
         }
-        // larger brush
+            // larger brush
         else if (k == ']') {
             if (brush_size < 40) {
                 brush_size++;
             }
         }
 
-        // enter key: use default mask
+            // enter key: use default mask
         else if (k == 13) {
             mask = imread("test_data/mask/mask" + to_string(img_current) + ".png", 0);
             break;
         }
 
-        // reset
+            // reset
         else if (k == 'r') {
             mask = Mat::zeros(img.rows, img.cols, CV_8UC1);
             draw_mask = img.clone();
@@ -150,23 +150,13 @@ static void callback_draw_mask(int event, int x, int y, int flags, void* param) 
 }
 
 
-/**
- * Show the user interface for drawing structural lines and curves.
- * Press Key 's' to run structure propagation, and Key 't' to run texture synthesis.
- * Press Key 'r' to reset, and Key 'a' to save.
- * Press Key 'e' to show curve points.
- */
 void showInterface() {
     prev_pt = Point(-1, -1);
     sp_result = img_masked.clone();
     draw_structure = img_masked.clone();
     mask_structure = Mat::zeros(img.rows, img.cols, CV_8UC1);
 
-    ofstream f;
-    f.open("point_list/plist" + to_string(img_current) + ".txt", ios::out); // clear old data
-    f.close();
-
-    namedWindow("run", 0);
+    namedWindow("run");
     createTrackbar("Block Size", "run", &block_size, 50);
     createTrackbar("Sample Step", "run", &sample_step, 20);
     createTrackbar("Line or Curve", "run", &line_or_curve, 1);
@@ -197,29 +187,10 @@ void showInterface() {
         {
             draw_structure = img_masked.clone();
             sp_result = img_masked.clone();
-            mask_structure = Mat::zeros(img.rows, img.cols, CV_8UC1);
             imshow("run", draw_structure);
 
             plist.clear();
             mousepoints.clear();
-        }
-        // save
-        else if (k == 'a')
-        {
-            imwrite("sp_result/sp" + to_string(img_current) + ".png", sp_result); // structure result
-            imwrite("ts_result/ts" + to_string(img_current) + ".png", ts_result); // texture result
-            imwrite("mask_structure/mask_s" + to_string(img_current) + ".bmp", mask_structure); // structure mask
-        }
-        // show curve points
-        else if (k == 'e')
-        {
-            plist.resize(mousepoints.size());
-            for (int i = 0; i < mousepoints.size(); i++)
-            {
-                GetCurve(mousepoints[i], plist[i]);
-                DrawPoints(plist[i], draw_structure, CV_RGB(0, 0, 255), 1);
-            }
-            imshow("run", draw_structure);
         }
             // texture synthesis
         else if (k == 't') {
@@ -227,20 +198,15 @@ void showInterface() {
             for (int i = 0; i < plist.size(); i++) {
                 DrawPoints(plist[i], img, CV_RGB(255, 0, 0), 1);
             }
-            Mat tp_result;
             sp_result.copyTo(tp_result);
-//            imshow("img", tp_result);
             SP.TextureCompletion(mask, mask_structure, tmp, tp_result);
-//            imshow("run", tp_result);
         }
 
         k = waitKey(0);
     }
 }
 
-/**
- * Mouse callback function for drawing the structure lines/curves.
- */
+
 static void callback_draw_line(int event, int x, int y, int flags, void* param) {
     if (line_or_curve == LINE_STRUCTURE) {
         if (event != CV_EVENT_LBUTTONDOWN) {
