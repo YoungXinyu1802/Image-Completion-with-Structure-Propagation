@@ -1,11 +1,12 @@
 # Image-Completion-with-Structure-Propagation
-Image Completion with Structure Completion. Final project of Computational Photography.
+Image Completion with Structure Completion. Implementation of paper *Sun, L. Yuan, J. Jia, and H.Y. Shum. Image completion with structure propagation. In ACM SIGGRAPH 2005 Papers, ACM, 2005. page 868*
+https://dl.acm.org/doi/10.1145/1073204.1073274
 
-| Original                                                    | Structure Line                                                   | Structure Photography                                                  | Results                                                   |
+| Original                                                    | Line                                                   | Structure                                                  | Results                                                   |
 | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| ![image-20220612164644481](Project%20-%20Image%20Completion.assets/car_0.png) | ![image-20220612191645372](Project%20-%20Image%20Completion.assets/car_1.png) | ![image-20220612191800313](Project%20-%20Image%20Completion.assets/car_2.png) | ![image-20220612191850443](Project%20-%20Image%20Completion.assets/image-20220612191850443.png) |
-| ![image-20220612201406058](Project%20-%20Image%20Completion.assets/image-20220612201406058.png) | ![image-20220612180323380](Project%20-%20Image%20Completion.assets/image-20220612180323380.png) | ![image-20220612180350273](Project%20-%20Image%20Completion.assets/image-20220612180350273.png) | ![image-20220612180751566](Project%20-%20Image%20Completion.assets/image-20220612180751566.png) |
-| ![image-20220612201355773](Project%20-%20Image%20Completion.assets/image-20220612201355773.png) | ![image-20220612201708520](Project%20-%20Image%20Completion.assets/image-20220612201708520.png) | ![image-20220612202604475](Project%20-%20Image%20Completion.assets/image-20220612202604475.png) | ![image-20220612202627017](Project%20-%20Image%20Completion.assets/image-20220612202627017.png) |
-| ![image-20220612201346784](Project%20-%20Image%20Completion.assets/image-20220612201346784.png) | ![image-20220612203922080](Project%20-%20Image%20Completion.assets/image-20220612203922080.png) | ![image-20220612203610221](Project%20-%20Image%20Completion.assets/image-20220612203610221.png) | ![image-20220612203834516](Project%20-%20Image%20Completion.assets/image-20220612203834516.png) |
-| ![image-20220612201330516](Project%20-%20Image%20Completion.assets/image-20220612201330516.png) | ![image-20220612205150816](Project%20-%20Image%20Completion.assets/image-20220612205150816.png) | ![image-20220612205346564](Project%20-%20Image%20Completion.assets/image-20220612205346564.png) | ![image-20220612210131784](Project%20-%20Image%20Completion.assets/image-20220612210131784.png) |
-| ![image-20220612201319351](Project%20-%20Image%20Completion.assets/image-20220612201319351.png) | ![image-20220612201246083](Project%20-%20Image%20Completion.assets/image-20220612201246083.png) | ![image-20220612201020951](Project%20-%20Image%20Completion.assets/image-20220612201020951.png) | ![image-20220612201156094](Project%20-%20Image%20Completion.assets/image-20220612201156094.png) |
+| ![](image/car_0.png) | ![](image/car_1.png) | ![](image/car_2.png) | ![](image/car_3.png) |
+| ![](image/man_0.png) | ![](image/man_1.png) | ![](image/man_2.png) | ![](image/man_3.png) |
+| ![](image/mellon_0.png) | ![](image/mellon_1.png) | ![](image/mellon_2.png) | ![](image/mellon_3.png)  |
+| ![](image/bird_0.png) | ![](image/bird_1.png) | ![](image/bird_2.png) | ![](image/bird_3.png) |
+| ![](image/ladder_0.png) | ![](image/ladder_1.png) | ![](image/ladder_2.png) | ![](image/ladder_3.png) |
+| ![](image/lake_0.png) | ![](image/lake_1.png) | ![](image/lake_2.png) | ![](image/lake_3.png) |
